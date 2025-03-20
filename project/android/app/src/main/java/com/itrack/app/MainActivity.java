@@ -1,4 +1,4 @@
-package com.itrack.app;
+package com.iTrack.app;
 
 import com.getcapacitor.BridgeActivity;
 

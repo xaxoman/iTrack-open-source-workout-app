@@ -1,8 +1,8 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.itrack.app',
-  appName: 'iTrack open-source workout app',
+  appId: 'com.iTrack.app',
+  appName: 'iTrack workout tracker',
   webDir: 'dist'
 };
 
