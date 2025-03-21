@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { WorkoutTimer } from './WorkoutTimer';
 import { WorkoutProgressBar } from './WorkoutProgressBar';
 import { RestTimer } from './RestTimer';
 import { ExerciseVideo } from './ExerciseVideo';
 import { Exercise } from '../types/workout';
-import { CheckCircle, Circle, Play, ChevronRight, Timer } from 'lucide-react';
+import { CheckCircle, Circle, Timer } from 'lucide-react';
 import { formatTime } from '../utils/formatTime';
 
 interface ActiveWorkoutProps {
@@ -19,6 +19,7 @@ export function ActiveWorkout({ name, exercises, onComplete }: ActiveWorkoutProp
   const [duration, setDuration] = useState(0);
   const [showRestTimer, setShowRestTimer] = useState(false);
   const [exerciseTimers, setExerciseTimers] = useState<Record<string, number>>({});
+  const currentExerciseRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -37,6 +38,16 @@ export function ActiveWorkout({ name, exercises, onComplete }: ActiveWorkoutProp
     });
     setExerciseTimers(timers);
   }, [exercises]);
+
+  useEffect(() => {
+    // Scroll to the current exercise when it changes
+    if (currentExerciseRef.current) {
+      currentExerciseRef.current.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center'
+      });
+    }
+  }, [currentExercise]);
 
   const handleExerciseComplete = (exerciseId: string) => {
     if (!completedExercises.includes(exerciseId)) {
@@ -85,13 +96,15 @@ export function ActiveWorkout({ name, exercises, onComplete }: ActiveWorkoutProp
         </div>
       </div>
 
-      <div className="space-y-4 pt-48">
+      <div className="space-y-4 pt-48 pb-20">
         {exercises.map((exercise, index) => (
           <div
             key={exercise.id}
+            ref={index === currentExercise ? currentExerciseRef : null}
             className={`bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm ${
               index === currentExercise ? 'ring-2 ring-indigo-500' : ''
             }`}
+            onClick={() => setCurrentExercise(index)}
           >
             {exercise.type === 'time' && index === currentExercise && (
               <div className="mb-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
@@ -104,7 +117,10 @@ export function ActiveWorkout({ name, exercises, onComplete }: ActiveWorkoutProp
                   </div>
                   {exerciseTimers[exercise.id] > 0 && !completedExercises.includes(exercise.id) && (
                     <button
-                      onClick={() => startExerciseTimer(exercise.id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        startExerciseTimer(exercise.id);
+                      }}
                       className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
                     >
                       Start Timer
@@ -120,10 +136,13 @@ export function ActiveWorkout({ name, exercises, onComplete }: ActiveWorkoutProp
               </div>
             )}
             
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between mb-2">
               <div className="flex items-center space-x-3">
                 <button
-                  onClick={() => handleExerciseComplete(exercise.id)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleExerciseComplete(exercise.id);
+                  }}
                   className="text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400"
                 >
                   {completedExercises.includes(exercise.id) ? (
@@ -149,27 +168,23 @@ export function ActiveWorkout({ name, exercises, onComplete }: ActiveWorkoutProp
                 </div>
               </div>
               
-              {index === currentExercise && index < exercises.length - 1 && (
-                <button
-                  onClick={() => setCurrentExercise(index + 1)}
-                  className="flex items-center space-x-1 text-indigo-600 dark:text-indigo-400 hover:text-indigo-700"
-                >
-                  <span className="text-sm">Next</span>
-                  <ChevronRight className="h-4 w-4" />
-                </button>
-              )}
+              <div className="text-sm text-gray-500 dark:text-gray-400">
+                {index + 1}/{exercises.length}
+              </div>
             </div>
           </div>
         ))}
       </div>
 
-      <div className="flex px-4 md:px-0">
-        <button
-          onClick={handleComplete}
-          className="w-full md:w-auto px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-center"
-        >
-          Complete Workout
-        </button>
+      <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 p-4 border-t dark:border-gray-700 z-10">
+        <div className="max-w-7xl mx-auto">
+          <button
+            onClick={handleComplete}
+            className="w-full px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-center"
+          >
+            Complete Workout
+          </button>
+        </div>
       </div>
 
       {showRestTimer && <RestTimer onComplete={handleRestComplete} />}
