@@ -4,7 +4,7 @@ import { Plus, Calendar, Trash2, Play, Edit, Clock } from 'lucide-react';
 import { CreateRoutineModal } from '../components/CreateRoutineModal';
 import { EditTemplateModal } from '../components/EditTemplateModal';
 import { ActiveWorkout } from '../components/ActiveWorkout';
-import { WorkoutTemplate } from '../types/workout';
+import { WorkoutTemplate, Exercise } from '../types/workout';
 import { formatTime } from '../utils/formatTime';
 
 export function Workouts() {
@@ -13,8 +13,32 @@ export function Workouts() {
   const [editingTemplate, setEditingTemplate] = useState<WorkoutTemplate | null>(null);
   const [activeTemplate, setActiveTemplate] = useState<WorkoutTemplate | null>(null);
 
+  // Create exercises with sets
+  const createExercisesWithSets = (template: WorkoutTemplate) => {
+    const exercisesWithSets: Exercise[] = [];
+    
+    // Create a copy of each exercise for each set
+    for (let setIndex = 0; setIndex < template.numberOfSets; setIndex++) {
+      template.exercises.forEach(exercise => {
+        exercisesWithSets.push({
+          ...exercise,
+          id: `${exercise.id}-set-${setIndex + 1}`, // Create unique ID for each exercise in each set
+          name: `${exercise.name} (Set ${setIndex + 1})`, // Add set number to name
+          sets: [] // Initialize empty sets array
+        });
+      });
+    }
+    
+    return exercisesWithSets;
+  };
+
   const handleStartWorkout = (template: WorkoutTemplate) => {
-    setActiveTemplate(template);
+    // Create a copy of the template with expanded exercises based on sets
+    const templateWithSets = {
+      ...template,
+      exercises: createExercisesWithSets(template)
+    };
+    setActiveTemplate(templateWithSets);
   };
 
   const handleCompleteWorkout = (duration: number, completionPercentage: number) => {
@@ -22,10 +46,7 @@ export function Workouts() {
       const workout = {
         id: crypto.randomUUID(),
         name: activeTemplate.name,
-        exercises: activeTemplate.exercises.map(ex => ({
-          ...ex,
-          sets: [],
-        })),
+        exercises: activeTemplate.exercises,
         date: new Date().toISOString(),
         duration,
         completionPercentage,
@@ -101,9 +122,10 @@ export function Workouts() {
                       </button>
                     </div>
                   </div>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                    {template.exercises.length} exercises
-                  </p>
+                  <div className="text-sm text-gray-500 dark:text-gray-400">
+                    <p>{template.exercises.length} exercises × {template.numberOfSets || 1} sets</p>
+                    <p>Total: {template.exercises.length * (template.numberOfSets || 1)} exercises</p>
+                  </div>
                 </div>
               ))}
             </div>

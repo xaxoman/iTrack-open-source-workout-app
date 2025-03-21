@@ -37,11 +37,19 @@ export const useWorkoutStore = create<WorkoutStore>()(
       setActiveWorkout: (workout) => set({ activeWorkout: workout }),
       toggleDarkMode: () => set((state) => ({ darkMode: !state.darkMode })),
       addTemplate: (template) =>
-        set((state) => ({ templates: [...state.templates, template] })),
+        set((state) => ({
+          templates: [...state.templates, {
+            ...template,
+            numberOfSets: template.numberOfSets || 1 // Default to 1 if not provided
+          }],
+        })),
       updateTemplate: (template) =>
         set((state) => ({
           templates: state.templates.map((t) =>
-            t.id === template.id ? template : t
+            t.id === template.id ? {
+              ...template,
+              numberOfSets: template.numberOfSets || 1 // Default to 1 if not provided
+            } : t
           ),
         })),
       deleteTemplate: (id) =>

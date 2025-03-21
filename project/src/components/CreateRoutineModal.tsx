@@ -23,6 +23,7 @@ interface ExerciseData {
 export function CreateRoutineModal({ isOpen, onClose }: CreateRoutineModalProps) {
   const [name, setName] = useState('');
   const [exercises, setExercises] = useState<ExerciseData[]>([]);
+  const [numberOfSets, setNumberOfSets] = useState(1);
   const { addTemplate } = useWorkoutStore();
   const lastExerciseRef = useRef<HTMLDivElement>(null);
 
@@ -75,11 +76,13 @@ export function CreateRoutineModal({ isOpen, onClose }: CreateRoutineModalProps)
         targetMuscles,
         description,
       })),
+      numberOfSets, // Include the number of sets in the template
     };
     addTemplate(template);
     onClose();
     setName('');
     setExercises([]);
+    setNumberOfSets(1);
   };
 
   const handleDragEnd = (result: any) => {
@@ -122,6 +125,28 @@ export function CreateRoutineModal({ isOpen, onClose }: CreateRoutineModalProps)
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
               required
             />
+          </div>
+
+          <div className="mb-6">
+            <label
+              htmlFor="sets"
+              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+            >
+              Number of Sets
+            </label>
+            <input
+              type="number"
+              id="sets"
+              min="1"
+              max="10"
+              value={numberOfSets}
+              onChange={(e) => setNumberOfSets(Math.max(1, parseInt(e.target.value) || 1))}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+              required
+            />
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+              Each exercise will be repeated for {numberOfSets} {numberOfSets === 1 ? 'set' : 'sets'}
+            </p>
           </div>
 
           <div className="mb-6">

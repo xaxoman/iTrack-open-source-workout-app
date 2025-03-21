@@ -30,4 +30,5 @@ export interface WorkoutTemplate {
   id: string;
   name: string;
   exercises: Omit<Exercise, 'sets'>[];
+  numberOfSets: number; // New field to store the number of sets
 }

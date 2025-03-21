@@ -14,6 +14,7 @@ interface EditTemplateModalProps {
 export function EditTemplateModal({ template, isOpen, onClose }: EditTemplateModalProps) {
   const [name, setName] = useState(template.name);
   const [exercises, setExercises] = useState(template.exercises);
+  const [numberOfSets, setNumberOfSets] = useState(template.numberOfSets || 1);
   const { updateTemplate } = useWorkoutStore();
   const lastExerciseRef = useRef<HTMLDivElement>(null);
 
@@ -46,6 +47,7 @@ export function EditTemplateModal({ template, isOpen, onClose }: EditTemplateMod
       ...template,
       name,
       exercises,
+      numberOfSets,
     });
     onClose();
   };
@@ -96,6 +98,28 @@ export function EditTemplateModal({ template, isOpen, onClose }: EditTemplateMod
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md"
               required
             />
+          </div>
+
+          <div className="mb-6">
+            <label
+              htmlFor="edit-sets"
+              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+            >
+              Number of Sets
+            </label>
+            <input
+              type="number"
+              id="edit-sets"
+              min="1"
+              max="10"
+              value={numberOfSets}
+              onChange={(e) => setNumberOfSets(Math.max(1, parseInt(e.target.value) || 1))}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+              required
+            />
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+              Each exercise will be repeated for {numberOfSets} {numberOfSets === 1 ? 'set' : 'sets'}
+            </p>
           </div>
 
           <div className="mb-6">
