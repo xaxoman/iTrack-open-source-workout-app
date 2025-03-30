@@ -1,4 +1,6 @@
 {
+  
+  "id": "fittrack-workout-tracker",
   "name": "FitTrack - Workout Tracker",
   "short_name": "FitTrack",
   "start_url": "/",
