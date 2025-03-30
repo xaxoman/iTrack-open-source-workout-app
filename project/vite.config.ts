@@ -34,6 +34,14 @@ export default defineConfig({
       }
     })
   ],
+  // Configurazione per il server di sviluppo
+  // se non funziona il live reload (SOPRATTUTTO PER CHI USA WSL)
+  server: {
+    watch: {
+      usePolling: true
+    }
+  },
+  
   optimizeDeps: {
     exclude: ['lucide-react'],
   },

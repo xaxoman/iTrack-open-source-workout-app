@@ -169,25 +169,23 @@ export function CreateRoutineModal({ isOpen, onClose }: CreateRoutineModalProps)
                       <Draggable key={exercise.id} draggableId={exercise.id} index={index}>
                         {(provided) => (
                           <div
-                            ref={provided.innerRef}
+                            ref={index === exercises.length - 1 ? lastExerciseRef : provided.innerRef}
                             {...provided.draggableProps}
-                            className={index === exercises.length - 1 ? 'ref-last-exercise' : ''}
+                            className="bg-white dark:bg-gray-800 rounded-lg mb-4"
                           >
-                            <div className="bg-white dark:bg-gray-800 rounded-lg mb-4">
-                              <div className="flex items-start">
-                                <div
-                                  {...provided.dragHandleProps}
-                                  className="p-4 cursor-grab active:cursor-grabbing"
-                                >
-                                  <GripVertical className="h-5 w-5 text-gray-400" />
-                                </div>
-                                <div className="flex-1">
-                                  <ExerciseForm
-                                    exercise={exercise}
-                                    onChange={(field, value) => updateExercise(exercise.id, field, value)}
-                                    onRemove={() => removeExercise(exercise.id)}
-                                  />
-                                </div>
+                            <div className="flex items-start">
+                              <div
+                                {...provided.dragHandleProps}
+                                className="p-4 cursor-grab active:cursor-grabbing"
+                              >
+                                <GripVertical className="h-5 w-5 text-gray-400" />
+                              </div>
+                              <div className="flex-1">
+                                <ExerciseForm
+                                  exercise={exercise}
+                                  onChange={(field, value) => updateExercise(exercise.id, field, value)}
+                                  onRemove={() => removeExercise(exercise.id)}
+                                />
                               </div>
                             </div>
                           </div>
