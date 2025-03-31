@@ -2,6 +2,9 @@
 
 iTrack is an open-source workout application designed to help users track their workouts, monitor progress, and achieve fitness goals. Built using TypeScript and React, it offers a clean and intuitive interface for managing workout routines.
 
+
+[![iTrack Logo](./fastlane/metadata/android/en-US/images/phoneScreenshots/Frame%201.png)]
+
 ## Features
 
 - **Workout Tracking**: Log and track workout sessions with detailed statistics.
