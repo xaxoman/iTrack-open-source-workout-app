@@ -1,0 +1,24 @@
+Categories:
+  - Sports & Health
+License: MIT
+AuthorName: iTrack Developer
+SourceCode: https://github.com/xaxoman/iTrack-open-source-workout-app
+IssueTracker: https://github.com/xaxoman/iTrack-open-source-workout-app/issues
+
+AutoName: iTrack workout tracker
+
+RepoType: git
+Repo: https://github.com/xaxoman/iTrack-open-source-workout-app.git
+
+Builds:
+  - versionName: '1.0'
+    versionCode: 1
+    commit: main
+    subdir: project/android
+    gradle:
+      - yes
+
+AutoUpdateMode: Version
+UpdateCheckMode: Tags
+CurrentVersion: '1.0'
+CurrentVersionCode: 1
