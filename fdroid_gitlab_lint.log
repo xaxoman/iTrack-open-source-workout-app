@@ -1,0 +1,57 @@
+$ export fdroidserver=$PWD/fdroidserver
+$ rm -rf $fdroidserver
+$ mkdir $fdroidserver
+$ git ls-remote https://gitlab.com/fdroid/fdroidserver.git master
+e6cff099f2e7f2d2d9b0f4def2e0854c78de36d2	refs/heads/master
+$ curl --silent https://gitlab.com/fdroid/fdroidserver/-/archive/master/fdroidserver-master.tar.gz | tar -xz --directory=$fdroidserver --strip-components=1
+$ export PATH="$fdroidserver:$PATH"
+$ export PYTHONPATH="$fdroidserver:$fdroidserver/examples"
+$ export PYTHONUNBUFFERED=true
+$ chown -R $(whoami) .
+$ cp tools/lint_config.yml config.yml
+$ if [ "$CI_PROJECT_PATH" = "fdroid/fdroiddata" ] && [ "$CI_COMMIT_BRANCH" = "$CI_DEFAULT_BRANCH" ]; then # collapsed multi-line command
+From https://gitlab.com/fdroid/fdroiddata
+ * branch                master     -> FETCH_HEAD
+ * [new branch]          master     -> upstream/master
+$ echo $TARGET_REF
+d776093cd9b7c430c8025ad151744d9c02ece313
+$ for f in $(git diff --name-only --diff-filter=d "${TARGET_REF}...${SOURCE_REF}" -- metadata/*.yml) $(git diff --name-only --diff-filter=d "${TARGET_REF}...${SOURCE_REF}" -- metadata/*/signatures); do # collapsed multi-line command
+$ export EXITVALUE=0
+$ function set_error() { export EXITVALUE=1; printf "\x1b[31mERROR `history|tail -2|head -1|cut -b 6-500`\x1b[0m\n"; }
+$ if [ -n "$CHANGED" ]; then # collapsed multi-line command
+2025-04-01 11:38:12,511 INFO: Rewriting 'com.iTrack.app'
+ERROR 
+These files have lint issues:
+metadata/com.iTrack.app.yml
+These are the formatting issues:
+diff --git a/metadata/com.iTrack.app.yml b/metadata/com.iTrack.app.yml
+index 21cc682d0..fc4b0c924 100644
+--- a/metadata/com.iTrack.app.yml
++++ b/metadata/com.iTrack.app.yml
+@@ -17,13 +17,10 @@ Builds:
+     subdir: project/android
+     gradle:
+       - yes
+-    prebuild: |
+-      # Download prebuilt libraries
+-      wget -O capacitor-android.aar https://example.com/capacitor-android.aar
+-      mkdir -p libs
+-      mv capacitor-android.aar libs/
+-      # Update build.gradle to use .aar file instead
+-      sed -i 's/implementation project(":capacitor-android")/implementation files("libs\/capacitor-android.aar")/' app/build.gradle
++    prebuild: "# Download prebuilt libraries
+wget -O capacitor-android.aar https://example.com/capacitor-android.aar
+\
++      mkdir -p libs
+mv capacitor-android.aar libs/
+# Update build.gradle to use\
++      \ .aar file instead
+sed -i 's/implementation project(":capacitor-android"\
++      )/implementation files("libs\/capacitor-android.aar")/' app/build.gradle
+"
+ 
+ AllowedAPKSigningKeys: d030ea1b2e5afe2219b220d99e9c1cc9068395429d871d6d862466a2ab608d62
+ $ exit $EXITVALUE
+Cleaning up project directory and file based variables
+00:01
+ERROR: Job failed: exit code 1

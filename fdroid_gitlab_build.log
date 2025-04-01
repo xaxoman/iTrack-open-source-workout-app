@@ -1,5 +1,5 @@
 Running with gitlab-runner 17.10.0~pre.41.g5c23fd8e (5c23fd8e)
-  on green-5.saas-linux-medium-amd64.runners-manager.gitlab.com/default g2po1APs, system ID: s_dcb821077a82
+  on green-2.saas-linux-medium-amd64.runners-manager.gitlab.com/default XC_pLo7y, system ID: s_e492edf4e5ae
 Preparing the "docker+machine" executor
 00:29
 Using Docker executor with image registry.gitlab.com/fdroid/fdroidserver:buildserver-bookworm ...
@@ -7,23 +7,23 @@ Authenticating with credentials from job payload (GitLab Registry)
 Pulling docker image registry.gitlab.com/fdroid/fdroidserver:buildserver-bookworm ...
 Using docker image sha256:3b8a6dcb6b3214e5dbae38efaa856c8cab3b3700a05edcdec096f6092f77c534 for registry.gitlab.com/fdroid/fdroidserver:buildserver-bookworm with digest registry.gitlab.com/fdroid/fdroidserver@sha256:58fa2abd6f74c571dadce9be5cbf01996aec7b76cc05d783f3568c60e46c4526 ...
 Preparing environment
-00:09
-Running on runner-g2po1aps-project-68532946-concurrent-0 via runner-g2po1aps-s-l-m-amd64-1743494030-99b71f6a...
+00:10
+Running on runner-xcplo7y-project-68532946-concurrent-0 via runner-xcplo7y-s-l-m-amd64-1743513133-bffe8a50...
 Getting source from Git repository
-00:35
+00:34
 Fetching changes with git depth set to 5000...
 Initialized empty Git repository in /builds/xaxoman/xaxoman-fdroiddata/.git/
 Created fresh repository.
-Checking out 9176314a as detached HEAD (ref is add-itrack-app)...
+Checking out 13702aeb as detached HEAD (ref is add-itrack-app)...
 Skipping Git submodules setup
 $ git remote set-url origin "${CI_REPOSITORY_URL}" || echo 'Not a git repository; skipping'
 Restoring cache
-00:01
+00:00
 Checking cache for fdroid build-non_protected...
 WARNING: file does not exist                       
 Failed to extract cache
 Executing "step_script" stage of the job script
-00:55
+01:04
 Using docker image sha256:3b8a6dcb6b3214e5dbae38efaa856c8cab3b3700a05edcdec096f6092f77c534 for registry.gitlab.com/fdroid/fdroidserver:buildserver-bookworm with digest registry.gitlab.com/fdroid/fdroidserver@sha256:58fa2abd6f74c571dadce9be5cbf01996aec7b76cc05d783f3568c60e46c4526 ...
 $ chown -R $(whoami) .
 $ test -d build || mkdir build
@@ -32,14 +32,14 @@ From https://gitlab.com/fdroid/fdroiddata
  * branch                master     -> FETCH_HEAD
  * [new branch]          master     -> upstream/master
 $ echo $TARGET_REF
-86c915e12132e3fd76a71f79d59a3e9950ba8db1
+d776093cd9b7c430c8025ad151744d9c02ece313
 $ for f in $(git diff --name-only --diff-filter=d "${TARGET_REF}...${SOURCE_REF}" -- metadata/*.yml) $(git diff --name-only --diff-filter=d "${TARGET_REF}...${SOURCE_REF}" -- metadata/*/signatures); do # collapsed multi-line command
 diff --git a/metadata/com.iTrack.app.yml b/metadata/com.iTrack.app.yml
 new file mode 100644
-index 000000000..ee6b0d651
+index 000000000..0d9ad02a1
 --- /dev/null
 +++ b/metadata/com.iTrack.app.yml
-@@ -0,0 +1,24 @@
+@@ -0,0 +1,26 @@
 +Categories:
 +  - Sports & Health
 +License: MIT
@@ -55,15 +55,18 @@ index 000000000..ee6b0d651
 +Builds:
 +  - versionName: '1.0'
 +    versionCode: 1
-+    commit: 12d6b0c2d7a055be40684fc73e772cec8e927a1b
++    commit: fdroid-prebuild
 +    subdir: project/android
 +    gradle:
 +      - yes
++
++AllowedAPKSigningKeys: d030ea1b2e5afe2219b220d99e9c1cc9068395429d871d6d862466a2ab608d62
 +
 +AutoUpdateMode: Version
 +UpdateCheckMode: Tags
 +CurrentVersion: '1.0'
 +CurrentVersionCode: 1
+\ No newline at end of file
 $ test -n "$(printf "$CHANGED" | tr -d '[:space:]')" || { echo "no packages need processing, exiting"; exit 0; }
 $ apt-get update
 Get:1 https://deb.debian.org/debian bookworm InRelease [151 kB]
@@ -76,7 +79,7 @@ Get:7 https://deb.debian.org/debian bookworm/main amd64 Packages [8792 kB]
 Get:8 https://deb.debian.org/debian bookworm-updates/main amd64 Packages [512 B]
 Get:9 https://deb.debian.org/debian bookworm-backports/main amd64 Packages [300 kB]
 Get:10 https://deb.debian.org/debian-security bookworm-security/main amd64 Packages [250 kB]
-Fetched 9955 kB in 1s (8549 kB/s)
+Fetched 9955 kB in 1s (8645 kB/s)
 Reading package lists...
 W: Target Packages (main/binary-amd64/Packages) is configured multiple times in /etc/apt/sources.list:1 and /etc/apt/sources.list.d/debian.sources:1
 W: Target Packages (main/binary-all/Packages) is configured multiple times in /etc/apt/sources.list:1 and /etc/apt/sources.list.d/debian.sources:1
@@ -98,14 +101,14 @@ Need to get 299 kB of archives.
 After this operation, 7168 B of additional disk space will be used.
 Get:1 https://deb.debian.org/debian bookworm-updates/main amd64 tzdata all 2025b-0+deb12u1 [299 kB]
 debconf: delaying package configuration, since apt-utils is not installed
-Fetched 299 kB in 0s (2384 kB/s)
+Fetched 299 kB in 0s (2622 kB/s)
 (Reading database ... 56503 files and directories currently installed.)
 Preparing to unpack .../tzdata_2025b-0+deb12u1_all.deb ...
 Unpacking tzdata (2025b-0+deb12u1) over (2025a-0+deb12u1) ...
 Setting up tzdata (2025b-0+deb12u1) ...
 Current default time zone: 'Etc/UTC'
-Local time is now:      Tue Apr  1 08:05:00 UTC 2025.
-Universal Time is now:  Tue Apr  1 08:05:00 UTC 2025.
+Local time is now:      Tue Apr  1 13:14:29 UTC 2025.
+Universal Time is now:  Tue Apr  1 13:14:29 UTC 2025.
 Run 'dpkg-reconfigure tzdata' if you wish to change it.
 W: Target Packages (main/binary-amd64/Packages) is configured multiple times in /etc/apt/sources.list:1 and /etc/apt/sources.list.d/debian.sources:1
 W: Target Packages (main/binary-all/Packages) is configured multiple times in /etc/apt/sources.list:1 and /etc/apt/sources.list.d/debian.sources:1
@@ -113,18 +116,18 @@ W: Target Packages (main/binary-amd64/Packages) is configured multiple times in 
 W: Target Packages (main/binary-all/Packages) is configured multiple times in /etc/apt/sources.list:3 and /etc/apt/sources.list.d/debian.sources:1
 $ test -n "$fdroidserver" || source /etc/profile.d/bsenv.sh
 $ sdkmanager "platform-tools" "build-tools;31.0.0"
-Downloading https://raw.githubusercontent.com/f-droid/android-sdk-transparency-log/master/signed/checksums.json.asc into /root/.cache/sdkmanager/checksums.json.asc
-Downloading https://raw.githubusercontent.com/f-droid/android-sdk-transparency-log/master/signed/checksums.json into /root/.cache/sdkmanager/checksums.json
+Downloading https://fdroid.gitlab.io/android-sdk-transparency-log/checksums.json.asc into /root/.cache/sdkmanager/checksums.json.asc
+Downloading https://fdroid.gitlab.io/android-sdk-transparency-log/checksums.json into /root/.cache/sdkmanager/checksums.json
 Downloading https://dl.google.com/android/repository/platform-tools_r35.0.2-linux.zip into /root/.cache/sdkmanager/platform-tools_r35.0.2-linux.zip
-Unzipping to /tmp/.sdkmanager-77w44fks
+Unzipping to /tmp/.sdkmanager-qmj8128s
 Installing into /opt/android-sdk/platform-tools
 Downloading https://dl.google.com/android/repository/build-tools_r31-linux.zip into /root/.cache/sdkmanager/build-tools_r31-linux.zip
-Unzipping to /tmp/.sdkmanager-6pmqw0ar
+Unzipping to /tmp/.sdkmanager-48pl0icf
 Installing into /opt/android-sdk/build-tools/31.0.0
 $ rm -rf $fdroidserver
 $ mkdir $fdroidserver
 $ git ls-remote https://gitlab.com/fdroid/fdroidserver.git master
-bb7394ab3c59900e2fe86f2bc0f8b2208c59efe1	refs/heads/master
+e6cff099f2e7f2d2d9b0f4def2e0854c78de36d2	refs/heads/master
 $ curl --silent https://gitlab.com/fdroid/fdroidserver/-/archive/master/fdroidserver-master.tar.gz | tar -xz --directory=$fdroidserver --strip-components=1
 $ export PATH="$fdroidserver:$PATH"
 $ export PYTHONPATH="$fdroidserver:$fdroidserver/examples"
@@ -148,12 +151,12 @@ $ for build in $APPS; do set -x; apt-get install sudo; cp -R $CI_PROJECT_DIR/bui
 Reading package lists...
 Building dependency tree...
 Reading state information...
+sudo is already the newest version (1.9.13p3-1+deb12u1).
+0 upgraded, 0 newly installed, 0 to remove and 0 not upgraded.
 W: Target Packages (main/binary-amd64/Packages) is configured multiple times in /etc/apt/sources.list:1 and /etc/apt/sources.list.d/debian.sources:1
 W: Target Packages (main/binary-all/Packages) is configured multiple times in /etc/apt/sources.list:1 and /etc/apt/sources.list.d/debian.sources:1
 W: Target Packages (main/binary-amd64/Packages) is configured multiple times in /etc/apt/sources.list:3 and /etc/apt/sources.list.d/debian.sources:1
 W: Target Packages (main/binary-all/Packages) is configured multiple times in /etc/apt/sources.list:3 and /etc/apt/sources.list.d/debian.sources:1
-sudo is already the newest version (1.9.13p3-1+deb12u1).
-0 upgraded, 0 newly installed, 0 to remove and 0 not upgraded.
 ++ cp -R /builds/xaxoman/xaxoman-fdroiddata/build /home/vagrant/build
 ++ appid=com.iTrack.app
 ++ '[' -d metadata/com.iTrack.app ']'
@@ -164,30 +167,30 @@ sudo is already the newest version (1.9.13p3-1+deb12u1).
 /home/vagrant /builds/xaxoman/xaxoman-fdroiddata
 ++ ln -s /builds/xaxoman/xaxoman-fdroiddata/../.gitconfig /home/vagrant/.gitconfig
 ++ sudo --preserve-env --user vagrant env PATH=/home/vagrant/fdroidserver:/home/vagrant/fdroidserver:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/opt/android-sdk/tools:/opt/android-sdk/platform-tools:/opt/gradle/bin env PYTHONPATH=/home/vagrant/fdroidserver:/home/vagrant/fdroidserver/examples env PYTHONUNBUFFERED=true env TERM=dumb env HOME=/home/vagrant fdroid fetchsrclibs com.iTrack.app:1 --verbose
-2025-04-01 08:05:07,925 DEBUG: Getting git vcs interface for https://github.com/xaxoman/iTrack-open-source-workout-app.git
-2025-04-01 08:05:07,926 DEBUG: > git -c core.askpass=/bin/true -c core.sshCommand=/bin/false -c url.https://.insteadOf=ssh:// -c url.https://u:p@bitbucket.org/.insteadOf=git@bitbucket.org: -c url.https://u:p@bitbucket.org.insteadOf=git://bitbucket.org -c url.https://u:p@bitbucket.org.insteadOf=https://bitbucket.org -c url.https://u:p@github.com/.insteadOf=git@github.com: -c url.https://u:p@github.com.insteadOf=git://github.com -c url.https://u:p@github.com.insteadOf=https://github.com -c url.https://u:p@gitlab.com/.insteadOf=git@gitlab.com: -c url.https://u:p@gitlab.com.insteadOf=git://gitlab.com -c url.https://u:p@gitlab.com.insteadOf=https://gitlab.com -c url.https://u:p@codeberg.org/.insteadOf=git@codeberg.org: -c url.https://u:p@codeberg.org.insteadOf=git://codeberg.org -c url.https://u:p@codeberg.org.insteadOf=https://codeberg.org clone -- https://github.com/xaxoman/iTrack-open-source-workout-app.git build/com.iTrack.app
+2025-04-01 13:14:36,310 DEBUG: Getting git vcs interface for https://github.com/xaxoman/iTrack-open-source-workout-app.git
+2025-04-01 13:14:36,311 DEBUG: > git -c core.askpass=/bin/true -c core.sshCommand=/bin/false -c url.https://.insteadOf=ssh:// -c url.https://u:p@bitbucket.org/.insteadOf=git@bitbucket.org: -c url.https://u:p@bitbucket.org.insteadOf=git://bitbucket.org -c url.https://u:p@bitbucket.org.insteadOf=https://bitbucket.org -c url.https://u:p@github.com/.insteadOf=git@github.com: -c url.https://u:p@github.com.insteadOf=git://github.com -c url.https://u:p@github.com.insteadOf=https://github.com -c url.https://u:p@gitlab.com/.insteadOf=git@gitlab.com: -c url.https://u:p@gitlab.com.insteadOf=git://gitlab.com -c url.https://u:p@gitlab.com.insteadOf=https://gitlab.com -c url.https://u:p@codeberg.org/.insteadOf=git@codeberg.org: -c url.https://u:p@codeberg.org.insteadOf=git://codeberg.org -c url.https://u:p@codeberg.org.insteadOf=https://codeberg.org clone -- https://github.com/xaxoman/iTrack-open-source-workout-app.git build/com.iTrack.app
 Cloning into 'build/com.iTrack.app'...
-2025-04-01 08:05:08,327 DEBUG: Directory: build/com.iTrack.app
-2025-04-01 08:05:08,328 DEBUG: > git rev-parse --show-toplevel
-2025-04-01 08:05:08,530 DEBUG: Directory: build/com.iTrack.app
-2025-04-01 08:05:08,530 DEBUG: > git checkout -f 12d6b0c2d7a055be40684fc73e772cec8e927a1b
-2025-04-01 08:05:08,731 DEBUG: Directory: build/com.iTrack.app
-2025-04-01 08:05:08,732 DEBUG: > git clean -dffx
-2025-04-01 08:05:08,833 DEBUG: Directory: build/com.iTrack.app
-2025-04-01 08:05:08,834 DEBUG: > git rev-parse --show-toplevel
-2025-04-01 08:05:09,036 DEBUG: Directory: build/com.iTrack.app
-2025-04-01 08:05:09,036 DEBUG: > git submodule deinit --all --force
+2025-04-01 13:14:36,713 DEBUG: Directory: build/com.iTrack.app
+2025-04-01 13:14:36,713 DEBUG: > git rev-parse --show-toplevel
+2025-04-01 13:14:36,915 DEBUG: Directory: build/com.iTrack.app
+2025-04-01 13:14:36,915 DEBUG: > git checkout -f fdroid-prebuild
+2025-04-01 13:14:37,117 DEBUG: Directory: build/com.iTrack.app
+2025-04-01 13:14:37,117 DEBUG: > git clean -dffx
+2025-04-01 13:14:37,219 DEBUG: Directory: build/com.iTrack.app
+2025-04-01 13:14:37,219 DEBUG: > git rev-parse --show-toplevel
+2025-04-01 13:14:37,421 DEBUG: Directory: build/com.iTrack.app
+2025-04-01 13:14:37,422 DEBUG: > git submodule deinit --all --force
 Set up srclibs:
 []
 ++ rm /home/vagrant/fdroiddata /home/vagrant/.gitconfig
 ++ sudo --preserve-env --user vagrant env PATH=/home/vagrant/fdroidserver:/home/vagrant/fdroidserver:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/opt/android-sdk/tools:/opt/android-sdk/platform-tools:/opt/gradle/bin env PYTHONPATH=/home/vagrant/fdroidserver:/home/vagrant/fdroidserver/examples env PYTHONUNBUFFERED=true env TERM=dumb env HOME=/home/vagrant fdroid build --verbose --test --refresh-scanner --scan-binary --on-server --no-tarball com.iTrack.app:1
-2025-04-01 08:05:09,444 INFO: Creating log directory
-2025-04-01 08:05:09,551 DEBUG: Getting git vcs interface for https://github.com/xaxoman/iTrack-open-source-workout-app.git
-2025-04-01 08:05:09,551 DEBUG: Checking com.iTrack.app:1
-2025-04-01 08:05:09,551 INFO: Building version 1.0 (1) of com.iTrack.app
-2025-04-01 08:05:09,551 DEBUG: > sudo passwd --lock root
+2025-04-01 13:14:37,845 INFO: Creating log directory
+2025-04-01 13:14:37,956 DEBUG: Getting git vcs interface for https://github.com/xaxoman/iTrack-open-source-workout-app.git
+2025-04-01 13:14:37,956 DEBUG: Checking com.iTrack.app:1
+2025-04-01 13:14:37,956 INFO: Building version 1.0 (1) of com.iTrack.app
+2025-04-01 13:14:37,957 DEBUG: > sudo passwd --lock root
 passwd: password changed.
-2025-04-01 08:05:09,753 DEBUG: > sudo SUDO_FORCE_REMOVE=yes dpkg --purge sudo
+2025-04-01 13:14:38,159 DEBUG: > sudo SUDO_FORCE_REMOVE=yes dpkg --purge sudo
 (Reading database ... 56505 files and directories currently installed.)
 Removing sudo (1.9.13p3-1+deb12u1) ...
 invoke-rc.d: could not determine current runlevel
@@ -195,38 +198,38 @@ invoke-rc.d: policy-rc.d denied execution of stop.
 Purging configuration files for sudo (1.9.13p3-1+deb12u1) ...
 dpkg: warning: while removing sudo, directory '/etc/sudoers.d' not empty so not removed
 Processing triggers for libc-bin (2.36-9+deb12u10) ...
-2025-04-01 08:05:10,071 INFO: Getting source for revision 12d6b0c2d7a055be40684fc73e772cec8e927a1b
-2025-04-01 08:05:10,071 DEBUG: Directory: build/com.iTrack.app
-2025-04-01 08:05:10,071 DEBUG: > git rev-parse --show-toplevel
-2025-04-01 08:05:10,273 DEBUG: Directory: build/com.iTrack.app
-2025-04-01 08:05:10,273 DEBUG: > git submodule foreach --recursive git reset --hard
-2025-04-01 08:05:10,375 DEBUG: Directory: build/com.iTrack.app
-2025-04-01 08:05:10,375 DEBUG: > git reset --hard
-2025-04-01 08:05:10,577 DEBUG: Directory: build/com.iTrack.app
-2025-04-01 08:05:10,577 DEBUG: > git submodule foreach --recursive git clean -dffx
-2025-04-01 08:05:10,679 DEBUG: Directory: build/com.iTrack.app
-2025-04-01 08:05:10,679 DEBUG: > git clean -dffx
-2025-04-01 08:05:10,780 DEBUG: Directory: build/com.iTrack.app
-2025-04-01 08:05:10,780 DEBUG: > git -c core.askpass=/bin/true -c core.sshCommand=/bin/false -c url.https://.insteadOf=ssh:// -c url.https://u:p@bitbucket.org/.insteadOf=git@bitbucket.org: -c url.https://u:p@bitbucket.org.insteadOf=git://bitbucket.org -c url.https://u:p@bitbucket.org.insteadOf=https://bitbucket.org -c url.https://u:p@github.com/.insteadOf=git@github.com: -c url.https://u:p@github.com.insteadOf=git://github.com -c url.https://u:p@github.com.insteadOf=https://github.com -c url.https://u:p@gitlab.com/.insteadOf=git@gitlab.com: -c url.https://u:p@gitlab.com.insteadOf=git://gitlab.com -c url.https://u:p@gitlab.com.insteadOf=https://gitlab.com -c url.https://u:p@codeberg.org/.insteadOf=git@codeberg.org: -c url.https://u:p@codeberg.org.insteadOf=git://codeberg.org -c url.https://u:p@codeberg.org.insteadOf=https://codeberg.org fetch --prune --prune-tags --force origin
-2025-04-01 08:05:10,982 DEBUG: Directory: build/com.iTrack.app
-2025-04-01 08:05:10,982 DEBUG: > git -c core.askpass=/bin/true -c core.sshCommand=/bin/false -c url.https://.insteadOf=ssh:// -c url.https://u:p@bitbucket.org/.insteadOf=git@bitbucket.org: -c url.https://u:p@bitbucket.org.insteadOf=git://bitbucket.org -c url.https://u:p@bitbucket.org.insteadOf=https://bitbucket.org -c url.https://u:p@github.com/.insteadOf=git@github.com: -c url.https://u:p@github.com.insteadOf=git://github.com -c url.https://u:p@github.com.insteadOf=https://github.com -c url.https://u:p@gitlab.com/.insteadOf=git@gitlab.com: -c url.https://u:p@gitlab.com.insteadOf=git://gitlab.com -c url.https://u:p@gitlab.com.insteadOf=https://gitlab.com -c url.https://u:p@codeberg.org/.insteadOf=git@codeberg.org: -c url.https://u:p@codeberg.org.insteadOf=git://codeberg.org -c url.https://u:p@codeberg.org.insteadOf=https://codeberg.org fetch --prune --tags --force origin
-2025-04-01 08:05:11,184 DEBUG: Directory: build/com.iTrack.app
-2025-04-01 08:05:11,184 DEBUG: > git remote set-head origin --auto
-2025-04-01 08:05:11,486 DEBUG: Directory: build/com.iTrack.app
-2025-04-01 08:05:11,486 DEBUG: > git checkout -f 12d6b0c2d7a055be40684fc73e772cec8e927a1b
-2025-04-01 08:05:11,688 DEBUG: Directory: build/com.iTrack.app
-2025-04-01 08:05:11,688 DEBUG: > git clean -dffx
-2025-04-01 08:05:11,790 DEBUG: Directory: build/com.iTrack.app
-2025-04-01 08:05:11,790 DEBUG: > git rev-parse --show-toplevel
-2025-04-01 08:05:11,992 DEBUG: Directory: build/com.iTrack.app
-2025-04-01 08:05:11,992 DEBUG: > git submodule deinit --all --force
-2025-04-01 08:05:12,094 INFO: Creating local.properties file at build/com.iTrack.app/local.properties
-2025-04-01 08:05:12,094 INFO: Creating local.properties file at build/com.iTrack.app/project/local.properties
-2025-04-01 08:05:12,095 INFO: Creating local.properties file at build/com.iTrack.app/project/android/local.properties
-2025-04-01 08:05:12,095 DEBUG: Removing debuggable flags from build/com.iTrack.app/project/android
-2025-04-01 08:05:12,098 INFO: Cleaning Gradle project...
-2025-04-01 08:05:12,099 DEBUG: Directory: build/com.iTrack.app/project/android
-2025-04-01 08:05:12,099 DEBUG: > /home/vagrant/fdroidserver/gradlew-fdroid clean
+2025-04-01 13:14:38,476 INFO: Getting source for revision fdroid-prebuild
+2025-04-01 13:14:38,477 DEBUG: Directory: build/com.iTrack.app
+2025-04-01 13:14:38,477 DEBUG: > git rev-parse --show-toplevel
+2025-04-01 13:14:38,679 DEBUG: Directory: build/com.iTrack.app
+2025-04-01 13:14:38,679 DEBUG: > git submodule foreach --recursive git reset --hard
+2025-04-01 13:14:38,781 DEBUG: Directory: build/com.iTrack.app
+2025-04-01 13:14:38,781 DEBUG: > git reset --hard
+2025-04-01 13:14:38,983 DEBUG: Directory: build/com.iTrack.app
+2025-04-01 13:14:38,983 DEBUG: > git submodule foreach --recursive git clean -dffx
+2025-04-01 13:14:39,085 DEBUG: Directory: build/com.iTrack.app
+2025-04-01 13:14:39,085 DEBUG: > git clean -dffx
+2025-04-01 13:14:39,186 DEBUG: Directory: build/com.iTrack.app
+2025-04-01 13:14:39,186 DEBUG: > git -c core.askpass=/bin/true -c core.sshCommand=/bin/false -c url.https://.insteadOf=ssh:// -c url.https://u:p@bitbucket.org/.insteadOf=git@bitbucket.org: -c url.https://u:p@bitbucket.org.insteadOf=git://bitbucket.org -c url.https://u:p@bitbucket.org.insteadOf=https://bitbucket.org -c url.https://u:p@github.com/.insteadOf=git@github.com: -c url.https://u:p@github.com.insteadOf=git://github.com -c url.https://u:p@github.com.insteadOf=https://github.com -c url.https://u:p@gitlab.com/.insteadOf=git@gitlab.com: -c url.https://u:p@gitlab.com.insteadOf=git://gitlab.com -c url.https://u:p@gitlab.com.insteadOf=https://gitlab.com -c url.https://u:p@codeberg.org/.insteadOf=git@codeberg.org: -c url.https://u:p@codeberg.org.insteadOf=git://codeberg.org -c url.https://u:p@codeberg.org.insteadOf=https://codeberg.org fetch --prune --prune-tags --force origin
+2025-04-01 13:14:39,388 DEBUG: Directory: build/com.iTrack.app
+2025-04-01 13:14:39,388 DEBUG: > git -c core.askpass=/bin/true -c core.sshCommand=/bin/false -c url.https://.insteadOf=ssh:// -c url.https://u:p@bitbucket.org/.insteadOf=git@bitbucket.org: -c url.https://u:p@bitbucket.org.insteadOf=git://bitbucket.org -c url.https://u:p@bitbucket.org.insteadOf=https://bitbucket.org -c url.https://u:p@github.com/.insteadOf=git@github.com: -c url.https://u:p@github.com.insteadOf=git://github.com -c url.https://u:p@github.com.insteadOf=https://github.com -c url.https://u:p@gitlab.com/.insteadOf=git@gitlab.com: -c url.https://u:p@gitlab.com.insteadOf=git://gitlab.com -c url.https://u:p@gitlab.com.insteadOf=https://gitlab.com -c url.https://u:p@codeberg.org/.insteadOf=git@codeberg.org: -c url.https://u:p@codeberg.org.insteadOf=git://codeberg.org -c url.https://u:p@codeberg.org.insteadOf=https://codeberg.org fetch --prune --tags --force origin
+2025-04-01 13:14:39,590 DEBUG: Directory: build/com.iTrack.app
+2025-04-01 13:14:39,590 DEBUG: > git remote set-head origin --auto
+2025-04-01 13:14:39,892 DEBUG: Directory: build/com.iTrack.app
+2025-04-01 13:14:39,892 DEBUG: > git checkout -f fdroid-prebuild
+2025-04-01 13:14:40,094 DEBUG: Directory: build/com.iTrack.app
+2025-04-01 13:14:40,094 DEBUG: > git clean -dffx
+2025-04-01 13:14:40,196 DEBUG: Directory: build/com.iTrack.app
+2025-04-01 13:14:40,196 DEBUG: > git rev-parse --show-toplevel
+2025-04-01 13:14:40,398 DEBUG: Directory: build/com.iTrack.app
+2025-04-01 13:14:40,398 DEBUG: > git submodule deinit --all --force
+2025-04-01 13:14:40,500 INFO: Creating local.properties file at build/com.iTrack.app/local.properties
+2025-04-01 13:14:40,500 INFO: Creating local.properties file at build/com.iTrack.app/project/local.properties
+2025-04-01 13:14:40,500 INFO: Creating local.properties file at build/com.iTrack.app/project/android/local.properties
+2025-04-01 13:14:40,501 DEBUG: Removing debuggable flags from build/com.iTrack.app/project/android
+2025-04-01 13:14:40,505 INFO: Cleaning Gradle project...
+2025-04-01 13:14:40,505 DEBUG: Directory: build/com.iTrack.app/project/android
+2025-04-01 13:14:40,505 DEBUG: > /home/vagrant/fdroidserver/gradlew-fdroid clean
 Found 8.11.1 via distributionUrl
 Downloading missing gradle version 8.11.1
 cachedir /home/vagrant/.cache/fdroidserver
@@ -242,14 +245,47 @@ To honour the JVM settings for this build a single-use Daemon process will be fo
 Daemon will be stopped at the end of the build 
 > Configure project :app
 WARNING: Using flatDir should be avoided because it doesn't support any meta-data formats.
+> Configure project :capacitor-cordova-android-plugins
+WARNING: Using flatDir should be avoided because it doesn't support any meta-data formats.
+> Task :clean UP-TO-DATE
+> Task :app:clean UP-TO-DATE
+> Task :capacitor-cordova-android-plugins:clean UP-TO-DATE
+[Incubating] Problems report is available at: file:///home/vagrant/build/com.iTrack.app/project/android/build/reports/problems/problems-report.html
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 9.0.
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+For more on this, please refer to https://docs.gradle.org/8.11.1/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+BUILD SUCCESSFUL in 25s
+3 actionable tasks: 3 up-to-date
+2025-04-01 13:15:08,560 INFO: Scanning source for common problems...
+2025-04-01 13:15:08,564 DEBUG: scanner is configured to use signature data from: 'suss'
+2025-04-01 13:15:08,564 DEBUG: downloading 'https://fdroid.gitlab.io/fdroid-suss/suss.json'
+2025-04-01 13:15:08,727 DEBUG: write 'suss.json' to cache
+2025-04-01 13:15:08,728 DEBUG: next suss.json cache update due in 23:59:59.997476
+2025-04-01 13:15:08,760 INFO: Removing gradle-wrapper.jar at project/android/gradle/wrapper/gradle-wrapper.jar
+2025-04-01 13:15:08,766 INFO: Building Gradle project...
+2025-04-01 13:15:08,766 DEBUG: Directory: build/com.iTrack.app/project/android
+2025-04-01 13:15:08,766 DEBUG: > /home/vagrant/fdroidserver/gradlew-fdroid assembleRelease
+Found 8.11.1 via distributionUrl
+Running /home/vagrant/.cache/fdroidserver/gradle/8.11.1/bin/gradle assembleRelease
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/8.11.1/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+> Configure project :app
+WARNING: Using flatDir should be avoided because it doesn't support any meta-data formats.
+> Configure project :capacitor-cordova-android-plugins
+WARNING: Using flatDir should be avoided because it doesn't support any meta-data formats.
 [Incubating] Problems report is available at: file:///home/vagrant/build/com.iTrack.app/project/android/build/reports/problems/problems-report.html
 FAILURE: Build failed with an exception.
-* Where:
-Script '/home/vagrant/build/com.iTrack.app/project/android/app/capacitor.build.gradle' line: 10
 * What went wrong:
-A problem occurred evaluating script.
-> Could not read script '/home/vagrant/build/com.iTrack.app/project/android/capacitor-cordova-android-plugins/cordova.variables.gradle' as it does not exist.
+Could not determine the dependencies of task ':app:mergeReleaseNativeLibs'.
+> Could not resolve all dependencies for configuration ':app:releaseRuntimeClasspath'.
+   > Could not resolve project :capacitor-android.
+     Required by:
+         project :app
+      > No matching variant of project :capacitor-android was found. The consumer was configured to find a library for use during runtime, preferably optimized for Android, as well as attribute 'com.android.build.api.attributes.AgpVersionAttr' with value '8.7.2', attribute 'com.android.build.api.attributes.BuildTypeAttr' with value 'release', attribute 'org.jetbrains.kotlin.platform.type' with value 'androidJvm' but:
+          - No variants exist.
 * Try:
+> Creating consumable variants is explained in more detail at https://docs.gradle.org/8.11.1/userguide/declaring_dependencies.html#sec:resolvable-consumable-configs.
+> Review the variant matching algorithm at https://docs.gradle.org/8.11.1/userguide/variant_attributes.html#sec:abm_algorithm.
 > Run with --stacktrace option to get the stack trace.
 > Run with --info or --debug option to get more log output.
 > Run with --scan to get full insights.
@@ -257,32 +293,31 @@ A problem occurred evaluating script.
 Deprecated Gradle features were used in this build, making it incompatible with Gradle 9.0.
 You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
 For more on this, please refer to https://docs.gradle.org/8.11.1/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
-BUILD FAILED in 23s
-2025-04-01 08:05:38,532 ERROR: Could not build app com.iTrack.app: Error cleaning com.iTrack.app:1.0
+BUILD FAILED in 9s
+2025-04-01 13:15:18,687 DEBUG: Popen(['git', 'cat-file', '--batch-check'], cwd=/home/vagrant/build/com.iTrack.app, universal_newlines=False, shell=None, istream=<valid stream>)
+2025-04-01 13:15:18,690 ERROR: Could not build app com.iTrack.app: Build failed for com.iTrack.app:1.0@d32490f3668e5ce9712595c9907798fe8cbee0d5
 ==== detail begin ====
 Found 8.11.1 via distributionUrl
-Downloading missing gradle version 8.11.1
-cachedir /home/vagrant/.cache/fdroidserver
-/home/vagrant/.cache/fdroidserver/gradle-8.11.1-bin.zip: OK
-Running /home/vagrant/.cache/fdroidserver/gradle/8.11.1/bin/gradle clean
-Welcome to Gradle 8.11.1!
-Here are the highlights of this release:
- - Parallel load and store for Configuration Cache
- - Java compilation errors at the end of the build output
- - Consolidated report for warnings and deprecations
-For more details see https://docs.gradle.org/8.11.1/release-notes.html
+Running /home/vagrant/.cache/fdroidserver/gradle/8.11.1/bin/gradle assembleRelease
 To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/8.11.1/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
 Daemon will be stopped at the end of the build 
 > Configure project :app
 WARNING: Using flatDir should be avoided because it doesn't support any meta-data formats.
+> Configure project :capacitor-cordova-android-plugins
+WARNING: Using flatDir should be avoided because it doesn't support any meta-data formats.
 [Incubating] Problems report is available at: file:///home/vagrant/build/com.iTrack.app/project/android/build/reports/problems/problems-report.html
 FAILURE: Build failed with an exception.
-* Where:
-Script '/home/vagrant/build/com.iTrack.app/project/android/app/capacitor.build.gradle' line: 10
 * What went wrong:
-A problem occurred evaluating script.
-> Could not read script '/home/vagrant/build/com.iTrack.app/project/android/capacitor-cordova-android-plugins/cordova.variables.gradle' as it does not exist.
+Could not determine the dependencies of task ':app:mergeReleaseNativeLibs'.
+> Could not resolve all dependencies for configuration ':app:releaseRuntimeClasspath'.
+   > Could not resolve project :capacitor-android.
+     Required by:
+         project :app
+      > No matching variant of project :capacitor-android was found. The consumer was configured to find a library for use during runtime, preferably optimized for Android, as well as attribute 'com.android.build.api.attributes.AgpVersionAttr' with value '8.7.2', attribute 'com.android.build.api.attributes.BuildTypeAttr' with value 'release', attribute 'org.jetbrains.kotlin.platform.type' with value 'androidJvm' but:
+          - No variants exist.
 * Try:
+> Creating consumable variants is explained in more detail at https://docs.gradle.org/8.11.1/userguide/declaring_dependencies.html#sec:resolvable-consumable-configs.
+> Review the variant matching algorithm at https://docs.gradle.org/8.11.1/userguide/variant_attributes.html#sec:abm_algorithm.
 > Run with --stacktrace option to get the stack trace.
 > Run with --info or --debug option to get more log output.
 > Run with --scan to get full insights.
@@ -290,16 +325,16 @@ A problem occurred evaluating script.
 Deprecated Gradle features were used in this build, making it incompatible with Gradle 9.0.
 You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
 For more on this, please refer to https://docs.gradle.org/8.11.1/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
-BUILD FAILED in 23s
+BUILD FAILED in 9s
 ==== detail end ====
-2025-04-01 08:05:38,532 DEBUG: Error encountered, stopping by user request.
+2025-04-01 13:15:18,690 DEBUG: Error encountered, stopping by user request.
 Uploading artifacts for failed job
 00:02
 Uploading artifacts...
 repo/: found 3 matching artifact files and directories 
 unsigned/: found 1 matching artifact files and directories 
 tmp/: found 1 matching artifact files and directories 
-Uploading artifacts as "archive" to coordinator... 201 Created  id=9585418061 responseStatus=201 Created token=66_S1Bw6v
+Uploading artifacts as "archive" to coordinator... 201 Created  id=9589256812 responseStatus=201 Created token=66_aZDZx7
 Cleaning up project directory and file based variables
-00:00
+00:01
 ERROR: Job failed: exit code 1
