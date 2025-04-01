@@ -11,10 +11,14 @@ RepoType: git
 Repo: https://github.com/xaxoman/iTrack-open-source-workout-app.git
 
 Builds:
+  Builds:
   - versionName: '1.0'
     versionCode: 1
     commit: 12d6b0c2d7a055be40684fc73e772cec8e927a1b
     subdir: project/android
+    prebuild: 
+      - mkdir -p capacitor-cordova-android-plugins
+      - echo 'ext.cdvMinSdkVersion = 22' > capacitor-cordova-android-plugins/cordova.variables.gradle
     gradle:
       - yes
 
