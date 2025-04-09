@@ -20,22 +20,7 @@ android {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
-            
-            // Make F-Droid build reproducible
-            resValue "string", "build_config_package", "com.iTrack.app"
         }
-    }
-
-    // Add this section for F-Droid to help make builds reproducible
-    compileOptions {
-        sourceCompatibility JavaVersion.VERSION_17
-        targetCompatibility JavaVersion.VERSION_17
-    }
-
-    // This helps F-Droid build your app correctly
-    lintOptions {
-        checkReleaseBuilds false
-        abortOnError false
     }
 }
 
