@@ -141,7 +141,7 @@ export function Workouts() {
             History
           </h2>
           {workouts.length > 0 ? (
-            <div className="space-y-4">
+            <div className="space-y-4 max-h-80 overflow-y-auto pr-1 scrollbar-thin">
               {workouts.map((workout) => (
                 <div
                   key={workout.id}

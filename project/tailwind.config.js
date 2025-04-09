@@ -44,6 +44,28 @@ export default {
         '.pl-safe': {
           paddingLeft: 'env(safe-area-inset-left)',
         },
+        '.scrollbar-thin': {
+          scrollbarWidth: 'thin',
+          '&::-webkit-scrollbar': {
+            width: '6px',
+          },
+          '&::-webkit-scrollbar-track': {
+            background: 'transparent',
+          },
+          '&::-webkit-scrollbar-thumb': {
+            background: '#cbd5e1',
+            borderRadius: '3px',
+          },
+          '&::-webkit-scrollbar-thumb:hover': {
+            background: '#94a3b8',
+          },
+          '.dark &::-webkit-scrollbar-thumb': {
+            background: '#475569',
+          },
+          '.dark &::-webkit-scrollbar-thumb:hover': {
+            background: '#64748b',
+          },
+        },
       };
       addUtilities(newUtilities);
     },
