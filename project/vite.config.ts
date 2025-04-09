@@ -14,20 +14,6 @@ export default defineConfig({
         short_name: 'FitTrack',
         description: 'Track and monitor your workout progress with FitTrack',
         theme_color: '#4f46e5',
-        icons: [
-          {
-            src: '/icons/icon-192.png',
-            sizes: '192x192',
-            type: 'image/png',
-            purpose: 'any maskable'
-          },
-          {
-            src: '/icons/icon-512.png',
-            sizes: '512x512',
-            type: 'image/png',
-            purpose: 'any maskable'
-          }
-        ]
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg}']
