@@ -88,7 +88,7 @@ export function ActiveWorkout({ name, exercises, onComplete }: ActiveWorkoutProp
 
   return (
     <div className="space-y-6">
-      <div className="fixed top-0 left-0 right-0 bg-white dark:bg-gray-800 shadow-md p-4 z-10">
+      <div className="fixed top-0 left-0 right-0 bg-white dark:bg-gray-800 shadow-md px-4 pt-4 pb-0 z-10">
         <div className="max-w-7xl mx-auto space-y-4">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white text-center">{name}</h2>
           <WorkoutProgressBar total={exercises.length} completed={completedExercises.length} />
@@ -96,7 +96,7 @@ export function ActiveWorkout({ name, exercises, onComplete }: ActiveWorkoutProp
         </div>
       </div>
 
-      <div className="space-y-4 pt-48 pb-20">
+      <div className="space-y-4 pt-28 pb-20">
         {exercises.map((exercise, index) => (
           <div
             key={exercise.id}
