@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { WorkoutTimer } from './WorkoutTimer';
 import { WorkoutProgressBar } from './WorkoutProgressBar';
 import { RestTimer } from './RestTimer';

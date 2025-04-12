@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useWorkoutStore } from '../store/useWorkoutStore';
 import { Plus, Calendar, Trash2, Play, Edit, Clock } from 'lucide-react';
 import { CreateRoutineModal } from '../components/CreateRoutineModal';
@@ -66,6 +66,11 @@ export function Workouts() {
       />
     );
   }
+
+  // Sort workouts by date (newest first)
+  const sortedWorkouts = [...workouts].sort((a, b) => 
+    new Date(b.date).getTime() - new Date(a.date).getTime()
+  );
 
   return (
     <div className="space-y-8">
@@ -142,7 +147,7 @@ export function Workouts() {
           </h2>
           {workouts.length > 0 ? (
             <div className="space-y-4 max-h-80 overflow-y-auto pr-1 scrollbar-thin">
-              {workouts.map((workout) => (
+              {sortedWorkouts.map((workout) => (
                 <div
                   key={workout.id}
                   className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg"
