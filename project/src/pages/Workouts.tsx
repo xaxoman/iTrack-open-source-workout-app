@@ -3,15 +3,25 @@ import { useWorkoutStore } from '../store/useWorkoutStore';
 import { Plus, Calendar, Trash2, Play, Edit, Clock } from 'lucide-react';
 import { CreateRoutineModal } from '../components/CreateRoutineModal';
 import { EditTemplateModal } from '../components/EditTemplateModal';
+import { ConfirmDeleteModal } from '../components/ConfirmDeleteModal';
 import { ActiveWorkout } from '../components/ActiveWorkout';
 import { WorkoutTemplate, Exercise } from '../types/workout';
 import { formatTime } from '../utils/formatTime';
 
 export function Workouts() {
-  const { workouts, templates, deleteTemplate, addWorkout } = useWorkoutStore();
+  const { workouts, templates, deleteTemplate, addWorkout, setIsWorkoutActive } = useWorkoutStore();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<WorkoutTemplate | null>(null);
-  const [activeTemplate, setActiveTemplate] = useState<WorkoutTemplate | null>(null);
+  const [activeTemplate, setActiveTemplate] = useState<(WorkoutTemplate & { exercises: Exercise[] }) | null>(null);
+  const [deleteConfirmModal, setDeleteConfirmModal] = useState<{
+    isOpen: boolean;
+    templateId: string | null;
+    templateName: string;
+  }>({
+    isOpen: false,
+    templateId: null,
+    templateName: ''
+  });
 
   // Create exercises with sets
   const createExercisesWithSets = (template: WorkoutTemplate) => {
@@ -39,6 +49,34 @@ export function Workouts() {
       exercises: createExercisesWithSets(template)
     };
     setActiveTemplate(templateWithSets);
+    setIsWorkoutActive(true);
+  };
+
+  const handleDeleteClick = (template: WorkoutTemplate) => {
+    setDeleteConfirmModal({
+      isOpen: true,
+      templateId: template.id,
+      templateName: template.name
+    });
+  };
+
+  const handleConfirmDelete = () => {
+    if (deleteConfirmModal.templateId) {
+      deleteTemplate(deleteConfirmModal.templateId);
+    }
+    setDeleteConfirmModal({
+      isOpen: false,
+      templateId: null,
+      templateName: ''
+    });
+  };
+
+  const handleCancelDelete = () => {
+    setDeleteConfirmModal({
+      isOpen: false,
+      templateId: null,
+      templateName: ''
+    });
   };
 
   const handleCompleteWorkout = (duration: number, completionPercentage: number) => {
@@ -46,7 +84,7 @@ export function Workouts() {
       const workout = {
         id: crypto.randomUUID(),
         name: activeTemplate.name,
-        exercises: activeTemplate.exercises,
+        exercises: activeTemplate.exercises, // These already have sets from createExercisesWithSets
         date: new Date().toISOString(),
         duration,
         completionPercentage,
@@ -54,6 +92,7 @@ export function Workouts() {
       };
       addWorkout(workout);
       setActiveTemplate(null);
+      setIsWorkoutActive(false);
     }
   };
 
@@ -119,7 +158,7 @@ export function Workouts() {
                         <Edit className="h-5 w-5" />
                       </button>
                       <button
-                        onClick={() => deleteTemplate(template.id)}
+                        onClick={() => handleDeleteClick(template)}
                         className="p-1 text-red-600 hover:text-red-700 dark:text-red-400"
                         title="Delete Template"
                       >
@@ -193,6 +232,13 @@ export function Workouts() {
           onClose={() => setEditingTemplate(null)}
         />
       )}
+
+      <ConfirmDeleteModal
+        isOpen={deleteConfirmModal.isOpen}
+        onClose={handleCancelDelete}
+        onConfirm={handleConfirmDelete}
+        message={`Do you really want to delete the workout "${deleteConfirmModal.templateName}"?`}
+      />
     </div>
   );
 }

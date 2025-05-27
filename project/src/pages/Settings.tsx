@@ -1,9 +1,41 @@
-import React from 'react';
+import { useState } from 'react';
 import { Bell, Moon, User } from 'lucide-react';
 import { useWorkoutStore } from '../store/useWorkoutStore';
+import { NotificationSettingsModal } from '../components/NotificationSettingsModal';
+import { UserProfileModal } from '../components/UserProfileModal';
+import type { NotificationSettings, UserProfile } from '../store/useWorkoutStore';
 
 export function Settings() {
-  const { darkMode, toggleDarkMode } = useWorkoutStore();
+  const { 
+    darkMode, 
+    toggleDarkMode, 
+    notificationSettings, 
+    updateNotificationSettings, 
+    userProfile, 
+    updateUserProfile 
+  } = useWorkoutStore();
+
+  const [isNotificationModalOpen, setIsNotificationModalOpen] = useState(false);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+
+  const handleSaveNotificationSettings = (settings: NotificationSettings) => {
+    updateNotificationSettings(settings);
+  };
+
+  const handleSaveProfile = (profile: UserProfile) => {
+    updateUserProfile(profile);
+  };
+
+  const getNotificationStatusText = () => {
+    if (!notificationSettings.enabled) return 'Disabled';
+    const days = notificationSettings.days.length;
+    return `${days} day${days !== 1 ? 's' : ''} at ${notificationSettings.time}`;
+  };
+
+  const getProfileStatusText = () => {
+    if (!userProfile) return 'Not configured';
+    return `BMI: ${userProfile.bmi?.toFixed(1) || 'N/A'} (${userProfile.bmiCategory || 'Unknown'})`;
+  };
 
   return (
     <div className="space-y-8">
@@ -49,11 +81,14 @@ export function Settings() {
                   Notifications
                 </h3>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
-                  Manage workout reminders
+                  {getNotificationStatusText()}
                 </p>
               </div>
             </div>
-            <button className="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300">
+            <button 
+              onClick={() => setIsNotificationModalOpen(true)}
+              className="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300"
+            >
               Configure
             </button>
           </div>
@@ -68,16 +103,34 @@ export function Settings() {
                   Profile
                 </h3>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
-                  Update your personal information
+                  {getProfileStatusText()}
                 </p>
               </div>
             </div>
-            <button className="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300">
-              Edit
+            <button 
+              onClick={() => setIsProfileModalOpen(true)}
+              className="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300"
+            >
+              {userProfile ? 'Edit' : 'Setup'}
             </button>
           </div>
         </div>
       </div>
+
+      {/* Modals */}
+      <NotificationSettingsModal
+        isOpen={isNotificationModalOpen}
+        onClose={() => setIsNotificationModalOpen(false)}
+        onSave={handleSaveNotificationSettings}
+        currentSettings={notificationSettings}
+      />
+
+      <UserProfileModal
+        isOpen={isProfileModalOpen}
+        onClose={() => setIsProfileModalOpen(false)}
+        onSave={handleSaveProfile}
+        currentProfile={userProfile || undefined}
+      />
     </div>
   );
 }

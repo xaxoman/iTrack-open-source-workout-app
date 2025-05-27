@@ -3,29 +3,48 @@ import { WorkoutTimer } from './WorkoutTimer';
 import { WorkoutProgressBar } from './WorkoutProgressBar';
 import { RestTimer } from './RestTimer';
 import { ExerciseVideo } from './ExerciseVideo';
+import { QuitWorkoutModal } from './QuitWorkoutModal';
 import { Exercise } from '../types/workout';
 import { CheckCircle, Circle, Timer } from 'lucide-react';
 import { formatTime } from '../utils/formatTime';
+import { enableWorkoutWakeLock, disableWorkoutWakeLock, requestWakeLock } from '../utils/wakeLock';
 
 interface ActiveWorkoutProps {
   name: string;
   exercises: Exercise[];
   onComplete: (duration: number, completionPercentage: number) => void;
+  onQuit?: () => void;
 }
 
-export function ActiveWorkout({ name, exercises, onComplete }: ActiveWorkoutProps) {
+export function ActiveWorkout({ name, exercises, onComplete, onQuit }: ActiveWorkoutProps) {
   const [currentExercise, setCurrentExercise] = useState(0);
   const [completedExercises, setCompletedExercises] = useState<string[]>([]);
   const [duration, setDuration] = useState(0);
   const [showRestTimer, setShowRestTimer] = useState(false);
   const [exerciseTimers, setExerciseTimers] = useState<Record<string, number>>({});
+  const [showQuitModal, setShowQuitModal] = useState(false);
   const currentExerciseRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const interval = setInterval(() => {
       setDuration(d => d + 1);
     }, 1000);
-    return () => clearInterval(interval);
+    
+    // Enable workout-specific wake lock when workout starts
+    enableWorkoutWakeLock();
+    
+    // Periodic wake lock check every 30 seconds during workout
+    const wakeLockInterval = setInterval(async () => {
+      console.log('Periodic wake lock check during workout');
+      await requestWakeLock();
+    }, 30000);
+    
+    return () => {
+      clearInterval(interval);
+      clearInterval(wakeLockInterval);
+      // Disable workout-specific wake lock when workout ends
+      disableWorkoutWakeLock();
+    };
   }, []);
 
   useEffect(() => {
@@ -38,6 +57,33 @@ export function ActiveWorkout({ name, exercises, onComplete }: ActiveWorkoutProp
     });
     setExerciseTimers(timers);
   }, [exercises]);
+
+  useEffect(() => {
+    // Handle browser back button and page refresh/close
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = ''; // For older browsers
+      return ''; // For modern browsers
+    };
+
+    const handlePopState = (e: PopStateEvent) => {
+      e.preventDefault();
+      setShowQuitModal(true);
+      // Push the current state back to prevent navigation
+      window.history.pushState(null, '', window.location.href);
+    };
+
+    // Add a history entry when the workout starts
+    window.history.pushState(null, '', window.location.href);
+    
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('popstate', handlePopState);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, []);
 
   useEffect(() => {
     // Scroll to the current exercise when it changes
@@ -70,6 +116,20 @@ export function ActiveWorkout({ name, exercises, onComplete }: ActiveWorkoutProp
     onComplete(duration, completionPercentage);
   };
 
+  const handleQuitWorkout = () => {
+    if (onQuit) {
+      onQuit();
+    } else {
+      // If no onQuit handler provided, calculate completion and call onComplete
+      const completionPercentage = (completedExercises.length / exercises.length) * 100;
+      onComplete(duration, completionPercentage);
+    }
+  };
+
+  const getCompletionPercentage = () => {
+    return (completedExercises.length / exercises.length) * 100;
+  };
+
   const startExerciseTimer = (exerciseId: string) => {
     const interval = setInterval(() => {
       setExerciseTimers(prev => {
@@ -92,7 +152,7 @@ export function ActiveWorkout({ name, exercises, onComplete }: ActiveWorkoutProp
         <div className="max-w-7xl mx-auto space-y-4">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white text-center">{name}</h2>
           <WorkoutProgressBar total={exercises.length} completed={completedExercises.length} />
-          <WorkoutTimer seconds={duration} />
+          <WorkoutTimer />
         </div>
       </div>
 
@@ -180,7 +240,7 @@ export function ActiveWorkout({ name, exercises, onComplete }: ActiveWorkoutProp
         <div className="max-w-7xl mx-auto">
           <button
             onClick={handleComplete}
-            className="w-full px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-center"
+            className="w-full px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-center font-medium"
           >
             Complete Workout
           </button>
@@ -188,6 +248,13 @@ export function ActiveWorkout({ name, exercises, onComplete }: ActiveWorkoutProp
       </div>
 
       {showRestTimer && <RestTimer onComplete={handleRestComplete} />}
+      
+      <QuitWorkoutModal
+        isOpen={showQuitModal}
+        onClose={() => setShowQuitModal(false)}
+        onConfirm={handleQuitWorkout}
+        completionPercentage={getCompletionPercentage()}
+      />
     </div>
   );
 }
