@@ -55,10 +55,8 @@ $apkPath = Join-Path $androidDir "app\build\outputs\apk\debug\app-debug.apk"
 if (Test-Path $apkPath) {
     Write-Host "`n✅ Build Successful!" -ForegroundColor Green
     Write-Host "📂 APK Location: $apkPath" -ForegroundColor White
-    
-    # Optional: Open the folder containing the APK
-    # Invoke-Item (Split-Path $apkPath)
-} else {
+}
+else {
     Write-Error "❌ Build finished but APK not found at expected path."
 }
 
