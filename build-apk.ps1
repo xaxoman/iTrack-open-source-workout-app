@@ -52,12 +52,14 @@ try {
 
 # 4. Success Message
 $apkPath = Join-Path $androidDir "app\build\outputs\apk\debug\app-debug.apk"
+
 if (Test-Path $apkPath) {
     Write-Host "`n✅ Build Successful!" -ForegroundColor Green
     Write-Host "📂 APK Location: $apkPath" -ForegroundColor White
-} else {
-    Write-Error "❌ Build finished but APK not found at expected path."
+    Set-Location $rootDir
+    exit 0
 }
 
-# Return to root
+Write-Error "❌ Build finished but APK not found at expected path."
 Set-Location $rootDir
+exit 1
