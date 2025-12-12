@@ -70,6 +70,7 @@ export const notificationManager = {
               minute: minutes,
             },
             allowWhileIdle: true,
+            repeats: true,
           },
           channelId: 'workout_reminders',
         });
