@@ -1,6 +1,7 @@
 import { Filesystem, Directory, Encoding, FileInfo } from '@capacitor/filesystem';
 import { Capacitor } from '@capacitor/core';
 import { useWorkoutStore } from '../store/useWorkoutStore';
+import toast from 'react-hot-toast';
 
 const BACKUP_DIR = 'backups';
 const MAX_BACKUPS = 2;
@@ -70,6 +71,15 @@ export const backupManager = {
         console.log('Performing auto-backup...');
         await backupManager.createBackup();
         await backupManager.pruneBackups();
+        toast.success('Backup completed', {
+          position: 'top-center',
+          duration: 3000,
+          style: {
+            borderRadius: '10px',
+            background: '#333',
+            color: '#fff',
+          },
+        });
       } else {
         console.log('Skipping auto-backup: Last backup is recent enough');
       }

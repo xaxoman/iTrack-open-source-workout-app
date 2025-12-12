@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
 import { Layout } from './components/Layout';
 import { Home } from './pages/Home';
 import { Workouts } from './pages/Workouts';
@@ -27,6 +28,7 @@ function App() {
       v7_startTransition: true,
       v7_relativeSplatPath: true 
     }}>
+      <Toaster />
       <Routes>
         <Route path="/" element={<Layout />}>
           <Route index element={<Home />} />
