@@ -17,7 +17,7 @@ if (Test-Path $projectDir) {
 # 1. Build Web Assets
 Write-Host "`n📦 Building web assets (Vite)..." -ForegroundColor Yellow
 try {
-    npm run build
+    cmd /c "npm run build"
     if ($LASTEXITCODE -ne 0) { throw "Vite build failed" }
 } catch {
     Write-Error "❌ Web build failed!"
@@ -28,7 +28,7 @@ try {
 # 2. Sync Capacitor
 Write-Host "`n🔄 Syncing Capacitor..." -ForegroundColor Yellow
 try {
-    npx cap sync
+    cmd /c "npx cap sync"
     if ($LASTEXITCODE -ne 0) { throw "Capacitor sync failed" }
 } catch {
     Write-Error "❌ Capacitor sync failed!"
@@ -42,7 +42,7 @@ $androidDir = Join-Path $projectDir "android"
 Set-Location $androidDir
 
 try {
-    ./gradlew assembleDebug
+    cmd /c "gradlew assembleDebug"
     if ($LASTEXITCODE -ne 0) { throw "Gradle build failed" }
 } catch {
     Write-Error "❌ Android build failed!"
@@ -55,8 +55,7 @@ $apkPath = Join-Path $androidDir "app\build\outputs\apk\debug\app-debug.apk"
 if (Test-Path $apkPath) {
     Write-Host "`n✅ Build Successful!" -ForegroundColor Green
     Write-Host "📂 APK Location: $apkPath" -ForegroundColor White
-}
-else {
+} else {
     Write-Error "❌ Build finished but APK not found at expected path."
 }
 
