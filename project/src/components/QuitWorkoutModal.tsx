@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom';
 import { AlertTriangle } from 'lucide-react';
 
 interface QuitWorkoutModalProps {
@@ -20,8 +21,8 @@ export function QuitWorkoutModal({
     onClose();
   };
 
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+  return createPortal(
+    <div className="fixed inset-0 w-full h-full bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
       <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md shadow-xl">
         <div className="flex items-center justify-center mb-4">
           <div className="w-12 h-12 bg-yellow-100 dark:bg-yellow-900/30 rounded-full flex items-center justify-center">
@@ -58,6 +59,7 @@ export function QuitWorkoutModal({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

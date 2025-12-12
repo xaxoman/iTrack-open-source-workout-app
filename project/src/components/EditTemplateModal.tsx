@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Plus, GripVertical } from 'lucide-react';
 import { WorkoutTemplate } from '../types/workout';
 import { ExerciseForm } from './ExerciseForm';
@@ -74,8 +75,8 @@ export function EditTemplateModal({ template, isOpen, onClose }: EditTemplateMod
     setExercises(items);
   };
 
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+  return createPortal(
+    <div className="fixed inset-0 w-full h-full bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
       <div className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-3xl max-h-[90vh] overflow-y-auto">
         <div className="sticky top-0 bg-white dark:bg-gray-800 z-10 flex items-center justify-between p-4 border-b dark:border-gray-700">
           <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
@@ -191,6 +192,7 @@ export function EditTemplateModal({ template, isOpen, onClose }: EditTemplateMod
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

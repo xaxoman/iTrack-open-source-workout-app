@@ -34,6 +34,7 @@ interface WorkoutStore {
   deleteTemplate: (id: string) => void;
   updateNotificationSettings: (settings: NotificationSettings) => void;
   updateUserProfile: (profile: UserProfile) => void;
+  importData: (data: Partial<WorkoutStore>) => void;
 }
 
 export const useWorkoutStore = create<WorkoutStore>()(
@@ -87,6 +88,14 @@ export const useWorkoutStore = create<WorkoutStore>()(
         set({ notificationSettings: settings }),
       updateUserProfile: (profile) =>
         set({ userProfile: profile }),
+      importData: (data) =>
+        set((state) => ({
+          workouts: data.workouts || state.workouts,
+          templates: data.templates || state.templates,
+          userProfile: data.userProfile || state.userProfile,
+          notificationSettings: data.notificationSettings || state.notificationSettings,
+          darkMode: data.darkMode ?? state.darkMode,
+        })),
     }),
     {
       name: 'workout-storage',

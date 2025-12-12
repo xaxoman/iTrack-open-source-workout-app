@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Bell, Moon, User } from 'lucide-react';
+import { Bell, Moon, User, Download, Upload } from 'lucide-react';
 import { useWorkoutStore } from '../store/useWorkoutStore';
 import { NotificationSettingsModal } from '../components/NotificationSettingsModal';
 import { UserProfileModal } from '../components/UserProfileModal';
@@ -12,7 +12,10 @@ export function Settings() {
     notificationSettings, 
     updateNotificationSettings, 
     userProfile, 
-    updateUserProfile 
+    updateUserProfile,
+    workouts,
+    templates,
+    importData
   } = useWorkoutStore();
 
   const [isNotificationModalOpen, setIsNotificationModalOpen] = useState(false);
@@ -24,6 +27,46 @@ export function Settings() {
 
   const handleSaveProfile = (profile: UserProfile) => {
     updateUserProfile(profile);
+  };
+
+  const handleExport = () => {
+    const data = {
+      workouts,
+      templates,
+      userProfile,
+      notificationSettings,
+      darkMode
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `itrack-backup-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleImport = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const content = e.target?.result as string;
+        const data = JSON.parse(content);
+        importData(data);
+        alert('Data imported successfully!');
+      } catch (error) {
+        console.error('Import failed:', error);
+        alert('Failed to import data. Invalid file format.');
+      }
+    };
+    reader.readAsText(file);
+    // Reset input
+    event.target.value = '';
   };
 
   const getNotificationStatusText = () => {
@@ -113,6 +156,53 @@ export function Settings() {
             >
               {userProfile ? 'Edit' : 'Setup'}
             </button>
+          </div>
+        </div>
+
+        <div className="p-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <Download className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+              <div>
+                <h3 className="text-lg font-medium text-gray-900 dark:text-white">
+                  Export Data
+                </h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Download a backup of your data
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={handleExport}
+              className="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300"
+            >
+              Export
+            </button>
+          </div>
+        </div>
+
+        <div className="p-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <Upload className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+              <div>
+                <h3 className="text-lg font-medium text-gray-900 dark:text-white">
+                  Import Data
+                </h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Restore data from a backup file
+                </p>
+              </div>
+            </div>
+            <label className="cursor-pointer text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300">
+              Import
+              <input
+                type="file"
+                accept=".json"
+                onChange={handleImport}
+                className="hidden"
+              />
+            </label>
           </div>
         </div>
       </div>

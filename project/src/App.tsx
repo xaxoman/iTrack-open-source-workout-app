@@ -6,12 +6,16 @@ import { Workouts } from './pages/Workouts';
 import { Progress } from './pages/Progress';
 import { Settings } from './pages/Settings';
 import { requestWakeLock, releaseWakeLock } from './utils/wakeLock';
+import { backupManager } from './utils/backupManager';
 
 function App() {
   useEffect(() => {
     // Request wake lock when app starts
     requestWakeLock();
     
+    // Initialize auto-backup system
+    backupManager.init();
+
     // Release wake lock when app is unmounted
     return () => {
       releaseWakeLock();

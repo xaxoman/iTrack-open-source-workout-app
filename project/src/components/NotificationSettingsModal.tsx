@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Bell } from 'lucide-react';
 
 interface NotificationSettingsModalProps {
@@ -55,8 +56,8 @@ export function NotificationSettingsModal({
     onClose();
   };
 
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+  return createPortal(
+    <div className="fixed inset-0 w-full h-full bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
       <div className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-md shadow-xl">
         <div className="flex items-center justify-between p-6 border-b dark:border-gray-700">
           <div className="flex items-center space-x-2">
@@ -161,6 +162,7 @@ export function NotificationSettingsModal({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
