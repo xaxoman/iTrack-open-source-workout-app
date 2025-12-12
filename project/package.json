@@ -14,6 +14,7 @@
     "@capacitor/cli": "^7.0.1",
     "@capacitor/core": "^7.0.1",
     "@capacitor/filesystem": "^7.1.5",
+    "@capacitor/local-notifications": "^7.0.4",
     "@hello-pangea/dnd": "^16.5.0",
     "clsx": "^2.1.0",
     "lucide-react": "^0.344.0",

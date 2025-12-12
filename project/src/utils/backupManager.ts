@@ -78,6 +78,7 @@ export const backupManager = {
             borderRadius: '10px',
             background: '#333',
             color: '#fff',
+            marginTop: '40px',
           },
         });
       } else {

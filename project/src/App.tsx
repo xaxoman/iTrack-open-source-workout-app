@@ -8,8 +8,12 @@ import { Progress } from './pages/Progress';
 import { Settings } from './pages/Settings';
 import { requestWakeLock, releaseWakeLock } from './utils/wakeLock';
 import { backupManager } from './utils/backupManager';
+import { notificationManager } from './utils/notificationManager';
+import { useWorkoutStore } from './store/useWorkoutStore';
 
 function App() {
+  const { notificationSettings } = useWorkoutStore();
+
   useEffect(() => {
     // Request wake lock when app starts
     requestWakeLock();
@@ -17,11 +21,19 @@ function App() {
     // Initialize auto-backup system
     backupManager.init();
 
+    // Initialize notifications
+    notificationManager.init();
+
     // Release wake lock when app is unmounted
     return () => {
       releaseWakeLock();
     };
   }, []);
+
+  // Re-schedule notifications when settings change
+  useEffect(() => {
+    notificationManager.schedule(notificationSettings);
+  }, [notificationSettings]);
 
   return (
     <BrowserRouter future={{ 
