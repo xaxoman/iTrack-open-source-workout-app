@@ -1,25 +1,24 @@
 # Build APK Automation Script
 
+$ErrorActionPreference = "Stop"
+
 Write-Host "🚀 Starting APK Build Process..." -ForegroundColor Cyan
 
 # Store the root directory
 $rootDir = Get-Location
+$projectDir = "$rootDir\project"
 
-# Navigate to project directory
-$projectDir = Join-Path $rootDir "project"
-if (Test-Path $projectDir) {
-    Set-Location $projectDir
-} else {
+if (-not (Test-Path $projectDir)) {
     Write-Error "❌ Project directory not found!"
     exit 1
 }
 
+Set-Location $projectDir
+
 # 1. Build Web Assets
 Write-Host "`n📦 Building web assets (Vite)..." -ForegroundColor Yellow
-try {
-    cmd /c "npm run build"
-    if ($LASTEXITCODE -ne 0) { throw "Vite build failed" }
-} catch {
+cmd /c "npm run build"
+if ($LASTEXITCODE -ne 0) {
     Write-Error "❌ Web build failed!"
     Set-Location $rootDir
     exit 1
@@ -27,10 +26,8 @@ try {
 
 # 2. Sync Capacitor
 Write-Host "`n🔄 Syncing Capacitor..." -ForegroundColor Yellow
-try {
-    cmd /c "npx cap sync"
-    if ($LASTEXITCODE -ne 0) { throw "Capacitor sync failed" }
-} catch {
+cmd /c "npx cap sync"
+if ($LASTEXITCODE -ne 0) {
     Write-Error "❌ Capacitor sync failed!"
     Set-Location $rootDir
     exit 1
@@ -38,20 +35,18 @@ try {
 
 # 3. Build Android APK
 Write-Host "`n🤖 Building Android APK (Gradle)..." -ForegroundColor Yellow
-$androidDir = Join-Path $projectDir "android"
+$androidDir = "$projectDir\android"
 Set-Location $androidDir
 
-try {
-    cmd /c "gradlew assembleDebug"
-    if ($LASTEXITCODE -ne 0) { throw "Gradle build failed" }
-} catch {
+cmd /c "gradlew assembleDebug"
+if ($LASTEXITCODE -ne 0) {
     Write-Error "❌ Android build failed!"
     Set-Location $rootDir
     exit 1
 }
 
 # 4. Success Message
-$apkPath = Join-Path $androidDir "app\build\outputs\apk\debug\app-debug.apk"
+$apkPath = "$androidDir\app\build\outputs\apk\debug\app-debug.apk"
 
 if (Test-Path $apkPath) {
     Write-Host "`n✅ Build Successful!" -ForegroundColor Green
