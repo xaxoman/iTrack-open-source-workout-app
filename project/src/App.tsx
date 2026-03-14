@@ -12,7 +12,15 @@ import { notificationManager } from './utils/notificationManager';
 import { useWorkoutStore } from './store/useWorkoutStore';
 
 function App() {
-  const { notificationSettings } = useWorkoutStore();
+  const { notificationSettings, darkMode } = useWorkoutStore();
+
+  useEffect(() => {
+    if (darkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [darkMode]);
 
   useEffect(() => {
     // Request wake lock when app starts

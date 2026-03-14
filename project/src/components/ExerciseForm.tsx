@@ -150,7 +150,7 @@ export function ExerciseForm({ exercise, onChange, onRemove }: ExerciseFormProps
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Video URL (YouTube or demonstration link)
+              Video or GIF URL (YouTube or image link)
             </label>
             <input
               type="url"

@@ -82,7 +82,7 @@ export function EditTemplateModal({ template, isOpen, onClose }: EditTemplateMod
           <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
             Edit Template
           </h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+          <button onClick={onClose} className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300">
             <X className="h-5 w-5" />
           </button>
         </div>
@@ -96,7 +96,7 @@ export function EditTemplateModal({ template, isOpen, onClose }: EditTemplateMod
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
               required
             />
           </div>
@@ -179,7 +179,7 @@ export function EditTemplateModal({ template, isOpen, onClose }: EditTemplateMod
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md"
+              className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md"
             >
               Cancel
             </button>

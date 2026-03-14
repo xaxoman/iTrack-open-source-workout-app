@@ -12,9 +12,21 @@ export function ExerciseVideo({ url }: ExerciseVideoProps) {
     return match && match[2].length === 11 ? match[2] : null;
   };
 
+  const isImageOrGif = (url: string) => {
+    return /\.(gif|jpe?g|tiff?|png|webp|bmp)(\?.*)?$/i.test(url);
+  };
+
   const videoId = getYouTubeVideoId(url);
 
   if (!url) return null;
+
+  if (isImageOrGif(url)) {
+    return (
+      <div className="aspect-video rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700 flex justify-center items-center">
+        <img src={url} alt="Exercise demonstration" className="w-full h-full object-contain" />
+      </div>
+    );
+  }
 
   if (videoId) {
     return (
