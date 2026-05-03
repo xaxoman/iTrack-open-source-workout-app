@@ -17,6 +17,15 @@ export function ExerciseVideo({ url }: ExerciseVideoProps) {
   };
 
   const videoId = getYouTubeVideoId(url);
+  const youtubeEmbedParams = videoId
+    ? new URLSearchParams({
+        origin: window.location.origin,
+        autoplay: '1',
+        mute: '1',
+        loop: '1',
+        playlist: videoId,
+      }).toString()
+    : null;
 
   if (!url) return null;
 
@@ -33,7 +42,7 @@ export function ExerciseVideo({ url }: ExerciseVideoProps) {
       <div className="aspect-video rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700">
         <iframe
           className="w-full h-full"
-          src={`https://www.youtube.com/embed/${videoId}?origin=${window.location.origin}&autoplay=1&mute=1`}
+          src={`https://www.youtube.com/embed/${videoId}?${youtubeEmbedParams}`}
           title="Exercise demonstration"
           frameBorder="0"
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
