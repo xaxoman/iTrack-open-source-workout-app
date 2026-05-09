@@ -11,8 +11,14 @@ export interface NotificationSettings {
 export interface UserProfile {
   height: number; // in centimeters
   weight: number; // in kilograms
+  age: number;
+  gender: 'MALE' | 'FEMALE';
+  neckCm?: number;
+  waistCm?: number;
   bmi?: number;
   bmiCategory?: string;
+  bodyFatPercentage?: number;
+  bodyFatMethod?: string;
 }
 
 interface WorkoutStore {

@@ -77,7 +77,17 @@ export function Settings() {
 
   const getProfileStatusText = () => {
     if (!userProfile) return 'Not configured';
-    return `BMI: ${userProfile.bmi?.toFixed(1) || 'N/A'} (${userProfile.bmiCategory || 'Unknown'})`;
+
+    const summaryParts = [
+      `${userProfile.gender}, ${userProfile.age}y`,
+      `BMI: ${userProfile.bmi?.toFixed(1) || 'N/A'} (${userProfile.bmiCategory || 'Unknown'})`,
+    ];
+
+    if (typeof userProfile.bodyFatPercentage === 'number') {
+      summaryParts.push(`Body fat: ${userProfile.bodyFatPercentage.toFixed(1)}%`);
+    }
+
+    return summaryParts.join(' | ');
   };
 
   return (

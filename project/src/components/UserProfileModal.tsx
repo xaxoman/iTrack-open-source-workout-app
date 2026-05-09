@@ -1,19 +1,13 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { X, User, Calculator } from 'lucide-react';
+import type { UserProfile } from '../store/useWorkoutStore';
 
 interface UserProfileModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (profile: UserProfile) => void;
   currentProfile?: UserProfile;
-}
-
-export interface UserProfile {
-  height: number; // in centimeters
-  weight: number; // in kilograms
-  bmi?: number;
-  bmiCategory?: string;
 }
 
 export function UserProfileModal({ 
@@ -24,6 +18,23 @@ export function UserProfileModal({
 }: UserProfileModalProps) {
   const [height, setHeight] = useState(currentProfile?.height?.toString() ?? '');
   const [weight, setWeight] = useState(currentProfile?.weight?.toString() ?? '');
+  const [age, setAge] = useState(currentProfile?.age?.toString() ?? '');
+  const [gender, setGender] = useState<UserProfile['gender'] | ''>(currentProfile?.gender ?? '');
+  const [neckCm, setNeckCm] = useState(currentProfile?.neckCm?.toString() ?? '');
+  const [waistCm, setWaistCm] = useState(currentProfile?.waistCm?.toString() ?? '');
+
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    setHeight(currentProfile?.height?.toString() ?? '');
+    setWeight(currentProfile?.weight?.toString() ?? '');
+    setAge(currentProfile?.age?.toString() ?? '');
+    setGender(currentProfile?.gender ?? '');
+    setNeckCm(currentProfile?.neckCm?.toString() ?? '');
+    setWaistCm(currentProfile?.waistCm?.toString() ?? '');
+  }, [currentProfile, isOpen]);
 
   if (!isOpen) return null;
 
@@ -46,30 +57,79 @@ export function UserProfileModal({
     return 'text-red-600 dark:text-red-400';
   };
 
-  const currentBMI = height && weight ? calculateBMI(parseFloat(height), parseFloat(weight)) : null;
+  const calculateBodyFatPercentage = (
+    heightCm: number,
+    ageYears: number,
+    selectedGender: UserProfile['gender'],
+    bmi: number,
+    waistMeasurement?: number,
+    neckMeasurement?: number
+  ) => {
+    if (waistMeasurement && waistMeasurement > 0) {
+      if (selectedGender === 'MALE' && neckMeasurement && neckMeasurement > 0 && waistMeasurement > neckMeasurement) {
+        const estimate = 495 /
+          (1.0324 - 0.19077 * Math.log10(waistMeasurement - neckMeasurement) + 0.15456 * Math.log10(heightCm)) - 450;
+
+        return {
+          percentage: estimate,
+          method: 'US Navy estimate',
+        };
+      }
+
+      const rfmBase = selectedGender === 'MALE' ? 64 : 76;
+      const estimate = rfmBase - 20 * (heightCm / waistMeasurement);
+
+      return {
+        percentage: estimate,
+        method: 'Relative fat mass estimate',
+      };
+    }
+
+    const sexFactor = selectedGender === 'MALE' ? 1 : 0;
+    const estimate = 1.2 * bmi + 0.23 * ageYears - 10.8 * sexFactor - 5.4;
+
+    return {
+      percentage: estimate,
+      method: 'BMI-based estimate',
+    };
+  };
+
+  const parsedHeight = parseFloat(height);
+  const parsedWeight = parseFloat(weight);
+  const parsedAge = parseInt(age, 10);
+  const parsedNeckCm = neckCm ? parseFloat(neckCm) : undefined;
+  const parsedWaistCm = waistCm ? parseFloat(waistCm) : undefined;
+
+  const hasCoreInputs = parsedHeight > 0 && parsedWeight > 0 && parsedAge > 0 && gender;
+  const currentBMI = hasCoreInputs ? calculateBMI(parsedHeight, parsedWeight) : null;
   const currentCategory = currentBMI ? getBMICategory(currentBMI) : null;
+  const bodyFatEstimate = currentBMI && gender
+    ? calculateBodyFatPercentage(parsedHeight, parsedAge, gender, currentBMI, parsedWaistCm, parsedNeckCm)
+    : null;
 
   const handleSave = () => {
-    if (!height || !weight) return;
-    
-    const heightNum = parseFloat(height);
-    const weightNum = parseFloat(weight);
-    const bmi = calculateBMI(heightNum, weightNum);
+    if (!hasCoreInputs || !gender || !currentBMI) return;
     
     onSave({
-      height: heightNum,
-      weight: weightNum,
-      bmi,
-      bmiCategory: getBMICategory(bmi)
+      height: parsedHeight,
+      weight: parsedWeight,
+      age: parsedAge,
+      gender,
+      neckCm: parsedNeckCm,
+      waistCm: parsedWaistCm,
+      bmi: currentBMI,
+      bmiCategory: getBMICategory(currentBMI),
+      bodyFatPercentage: bodyFatEstimate ? Math.max(0, Math.min(100, bodyFatEstimate.percentage)) : undefined,
+      bodyFatMethod: bodyFatEstimate?.method,
     });
     onClose();
   };
 
-  const isValid = height && weight && parseFloat(height) > 0 && parseFloat(weight) > 0;
+  const isValid = Boolean(hasCoreInputs);
 
   return createPortal(
     <div className="fixed inset-0 w-full h-full bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-md shadow-xl">
+      <div className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-lg max-h-[90vh] shadow-xl flex flex-col">
         <div className="flex items-center justify-between p-6 border-b dark:border-gray-700">
           <div className="flex items-center space-x-2">
             <User className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
@@ -85,7 +145,7 @@ export function UserProfileModal({
           </button>
         </div>
 
-        <div className="p-6 space-y-6">
+        <div className="p-6 space-y-6 overflow-y-auto">
           {/* Height Input */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -125,6 +185,78 @@ export function UserProfileModal({
             </p>
           </div>
 
+          <div className="grid sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Gender
+              </label>
+              <select
+                value={gender}
+                onChange={(e) => setGender(e.target.value as UserProfile['gender'])}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+              >
+                <option value="">Select gender</option>
+                <option value="MALE">Male</option>
+                <option value="FEMALE">Female</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Age
+              </label>
+              <input
+                type="number"
+                value={age}
+                onChange={(e) => setAge(e.target.value)}
+                placeholder="Enter your age"
+                min="10"
+                max="120"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white placeholder-gray-400"
+              />
+            </div>
+          </div>
+
+          <div className="grid sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Neck (cm)
+              </label>
+              <input
+                type="number"
+                value={neckCm}
+                onChange={(e) => setNeckCm(e.target.value)}
+                placeholder="Optional"
+                min="20"
+                max="80"
+                step="0.1"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white placeholder-gray-400"
+              />
+              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                Optional. Helps refine body fat estimation.
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Waist (cm)
+              </label>
+              <input
+                type="number"
+                value={waistCm}
+                onChange={(e) => setWaistCm(e.target.value)}
+                placeholder="Optional"
+                min="40"
+                max="200"
+                step="0.1"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white placeholder-gray-400"
+              />
+              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                Optional. Enables body fat percentage estimation.
+              </p>
+            </div>
+          </div>
+
           {/* BMI Calculation Display */}
           {currentBMI && (
             <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
@@ -147,6 +279,22 @@ export function UserProfileModal({
                     {currentCategory}
                   </span>
                 </div>
+                {bodyFatEstimate && (
+                  <>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600 dark:text-gray-400">Body Fat %:</span>
+                      <span className="text-lg font-semibold text-indigo-600 dark:text-indigo-400">
+                        {Math.max(0, Math.min(100, bodyFatEstimate.percentage)).toFixed(1)}%
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center gap-4">
+                      <span className="text-sm text-gray-600 dark:text-gray-400">Method:</span>
+                      <span className="text-sm font-medium text-gray-900 dark:text-white text-right">
+                        {bodyFatEstimate.method}
+                      </span>
+                    </div>
+                  </>
+                )}
               </div>
               
               {/* BMI Scale Reference */}

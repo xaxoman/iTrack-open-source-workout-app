@@ -2,7 +2,38 @@ import { useMemo } from 'react';
 import { LineChart as LineChartIcon, Calendar, TrendingUp, Activity } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useWorkoutStore } from '../store/useWorkoutStore';
+import type { Workout } from '../types/workout';
 import { formatTime } from '../utils/formatTime';
+
+interface CompletionTrendPoint {
+  label: string;
+  completion: number;
+  trackedWorkouts: number;
+  trend: number | null;
+}
+
+function getLatestWorkoutsByName(periodWorkouts: Workout[]) {
+  const latestByName = new Map<string, Workout>();
+
+  periodWorkouts.forEach((workout) => {
+    const existingWorkout = latestByName.get(workout.name);
+
+    if (!existingWorkout || new Date(workout.date).getTime() > new Date(existingWorkout.date).getTime()) {
+      latestByName.set(workout.name, workout);
+    }
+  });
+
+  return Array.from(latestByName.values());
+}
+
+function buildCompletionTrendData(
+  points: Array<Omit<CompletionTrendPoint, 'trend'>>
+): CompletionTrendPoint[] {
+  return points.map((point, index) => ({
+    ...point,
+    trend: index === 0 ? null : point.completion - points[index - 1].completion,
+  }));
+}
 
 export function Progress() {
   const { workouts } = useWorkoutStore();
@@ -13,7 +44,6 @@ export function Progress() {
       return {
         thisMonth: 0,
         totalWorkouts: 0,
-        totalDuration: 0,
         averageDuration: 0,
         averageCompletion: 0,
         streak: 0,
@@ -34,9 +64,8 @@ export function Progress() {
       return workoutDate.getMonth() === thisMonth && workoutDate.getFullYear() === thisYear;
     });
 
-    // Calculate total duration and average
-    const totalDuration = workouts.reduce((sum, workout) => sum + workout.duration, 0);
-    const averageDuration = totalDuration / workouts.length;
+    // Calculate average duration
+    const averageDuration = workouts.reduce((sum, workout) => sum + workout.duration, 0) / workouts.length;
 
     // Calculate average completion percentage
     const averageCompletion = workouts.reduce((sum, workout) => sum + workout.completionPercentage, 0) / workouts.length;
@@ -64,7 +93,7 @@ export function Progress() {
       }
     }
 
-    // Generate weekly data for the last 8 weeks
+    // Generate weekly completion trend for the last 8 weeks using the latest completion per workout name.
     const weeklyData = [];
     for (let i = 7; i >= 0; i--) {
       const weekStart = new Date();
@@ -80,14 +109,19 @@ export function Progress() {
         return workoutDate >= weekStart && workoutDate <= weekEnd;
       });
 
+      const latestWeekWorkouts = getLatestWorkoutsByName(weekWorkouts);
+      const averageWeekCompletion = latestWeekWorkouts.length
+        ? latestWeekWorkouts.reduce((sum, workout) => sum + workout.completionPercentage, 0) / latestWeekWorkouts.length
+        : 0;
+
       weeklyData.push({
-        week: `Week ${8 - i}`,
-        workouts: weekWorkouts.length,
-        duration: weekWorkouts.reduce((sum, w) => sum + w.duration, 0)
+        label: `Week ${8 - i}`,
+        completion: averageWeekCompletion,
+        trackedWorkouts: latestWeekWorkouts.length,
       });
     }
 
-    // Generate monthly data for the last 6 months
+    // Generate monthly completion trend for the last 6 months using the latest completion per workout name.
     const monthlyData = [];
     const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     
@@ -102,10 +136,15 @@ export function Progress() {
         return workoutDate.getMonth() === month && workoutDate.getFullYear() === year;
       });
 
+      const latestMonthWorkouts = getLatestWorkoutsByName(monthWorkouts);
+      const averageMonthCompletion = latestMonthWorkouts.length
+        ? latestMonthWorkouts.reduce((sum, workout) => sum + workout.completionPercentage, 0) / latestMonthWorkouts.length
+        : 0;
+
       monthlyData.push({
-        month: monthNames[month],
-        workouts: monthWorkouts.length,
-        totalDuration: monthWorkouts.reduce((sum, w) => sum + w.duration, 0)
+        label: monthNames[month],
+        completion: averageMonthCompletion,
+        trackedWorkouts: latestMonthWorkouts.length,
       });
     }
 
@@ -139,12 +178,11 @@ export function Progress() {
     return {
       thisMonth: thisMonthWorkouts.length,
       totalWorkouts: workouts.length,
-      totalDuration,
       averageDuration,
       averageCompletion,
       streak,
-      weeklyData,
-      monthlyData,
+      weeklyData: buildCompletionTrendData(weeklyData),
+      monthlyData: buildCompletionTrendData(monthlyData),
       completionData: completionRanges,
       mostActiveDay
     };
@@ -173,7 +211,7 @@ export function Progress() {
       <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Progress</h1>
 
       {/* Main Statistics Cards */}
-      <div className="grid md:grid-cols-4 gap-6">
+      <div className="grid md:grid-cols-3 gap-6">
         <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm">
           <div className="flex items-center space-x-2 mb-4">
             <Calendar className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
@@ -200,19 +238,6 @@ export function Progress() {
           <p className="text-sm text-gray-500 dark:text-gray-400">
             {stats.streak === 1 ? 'Day in a row' : 'Days in a row'}
           </p>
-        </div>
-
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm">
-          <div className="flex items-center space-x-2 mb-4">
-            <Activity className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-              Total Time
-            </h2>
-          </div>
-          <p className="text-3xl font-bold text-gray-900 dark:text-white">
-            {formatTime(stats.totalDuration)}
-          </p>
-          <p className="text-sm text-gray-500 dark:text-gray-400">Total workout time</p>
         </div>
 
         <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm">
@@ -280,22 +305,41 @@ export function Progress() {
       <div className="grid md:grid-cols-2 gap-6">
         <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm">
           <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">
-            Weekly Activity
+            Weekly Completion Trend
           </h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+            Latest completion percentage recorded for each workout routine in that week.
+          </p>
           <div className="h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={stats.weeklyData}>
                 <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
                 <XAxis 
-                  dataKey="week" 
+                  dataKey="label" 
                   className="text-xs"
                   tick={{ fill: 'currentColor' }}
                 />
                 <YAxis 
+                  domain={[0, 100]}
                   className="text-xs"
+                  tickFormatter={(value) => `${value}%`}
                   tick={{ fill: 'currentColor' }}
                 />
                 <Tooltip 
+                  formatter={(value: number) => [`${Math.round(value)}%`, 'Latest completion avg.']}
+                  labelFormatter={(label, payload) => {
+                    const point = payload?.[0]?.payload as CompletionTrendPoint | undefined;
+
+                    if (!point) {
+                      return label;
+                    }
+
+                    const trendText = point.trend === null
+                      ? 'Starting point'
+                      : `${point.trend >= 0 ? '+' : ''}${Math.round(point.trend)} pts vs previous week`;
+
+                    return `${label} | ${point.trackedWorkouts} workout${point.trackedWorkouts === 1 ? '' : 's'} | ${trendText}`;
+                  }}
                   contentStyle={{
                     backgroundColor: 'var(--tooltip-bg, #374151)',
                     border: 'none',
@@ -305,7 +349,7 @@ export function Progress() {
                 />
                 <Line
                   type="monotone"
-                  dataKey="workouts"
+                  dataKey="completion"
                   stroke="#4f46e5"
                   strokeWidth={3}
                   dot={{ fill: '#4f46e5', strokeWidth: 2, r: 4 }}
@@ -317,22 +361,41 @@ export function Progress() {
 
         <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm">
           <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">
-            Monthly Progress
+            Monthly Completion Trend
           </h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+            Latest completion percentage recorded for each workout routine in that month.
+          </p>
           <div className="h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={stats.monthlyData}>
                 <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
                 <XAxis 
-                  dataKey="month" 
+                  dataKey="label" 
                   className="text-xs"
                   tick={{ fill: 'currentColor' }}
                 />
                 <YAxis 
+                  domain={[0, 100]}
                   className="text-xs"
+                  tickFormatter={(value) => `${value}%`}
                   tick={{ fill: 'currentColor' }}
                 />
                 <Tooltip 
+                  formatter={(value: number) => [`${Math.round(value)}%`, 'Latest completion avg.']}
+                  labelFormatter={(label, payload) => {
+                    const point = payload?.[0]?.payload as CompletionTrendPoint | undefined;
+
+                    if (!point) {
+                      return label;
+                    }
+
+                    const trendText = point.trend === null
+                      ? 'Starting point'
+                      : `${point.trend >= 0 ? '+' : ''}${Math.round(point.trend)} pts vs previous month`;
+
+                    return `${label} | ${point.trackedWorkouts} workout${point.trackedWorkouts === 1 ? '' : 's'} | ${trendText}`;
+                  }}
                   contentStyle={{
                     backgroundColor: 'var(--tooltip-bg, #374151)',
                     border: 'none',
@@ -342,7 +405,7 @@ export function Progress() {
                 />
                 <Line
                   type="monotone"
-                  dataKey="workouts"
+                  dataKey="completion"
                   stroke="#059669"
                   strokeWidth={3}
                   dot={{ fill: '#059669', strokeWidth: 2, r: 4 }}
