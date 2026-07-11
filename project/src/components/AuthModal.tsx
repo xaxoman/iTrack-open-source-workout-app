@@ -12,6 +12,8 @@ import {
   RefreshCw,
   Loader2,
   CheckCircle2,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuthStore } from '../store/useAuthStore';
@@ -42,12 +44,14 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
   const [mode, setMode] = useState<Mode>('signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [info, setInfo] = useState<string | null>(null);
 
   useEffect(() => {
     if (isOpen) {
       setEmail('');
       setPassword('');
+      setShowPassword(false);
       setInfo(null);
       clearError();
     }
@@ -228,15 +232,29 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <input
-                    type="password"
+                    type={showPassword ? 'text' : 'password'}
                     required
                     minLength={6}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="At least 6 characters"
                     autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
-                    className="w-full pl-9 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white placeholder-gray-400"
+                    className="w-full pl-9 pr-10 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white placeholder-gray-400"
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((show) => !show)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    title={showPassword ? 'Hide password' : 'Show password'}
+                    tabIndex={-1}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </button>
                 </div>
               </div>
 

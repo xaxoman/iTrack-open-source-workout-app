@@ -20,6 +20,12 @@ export const supabase: SupabaseClient | null = isSupabaseConfigured
       auth: {
         persistSession: true,
         autoRefreshToken: true,
+        // Parse the session tokens that email-confirmation / magic links append
+        // to the URL hash, then establish the session automatically.
+        detectSessionInUrl: true,
+        // Implicit flow keeps confirmation links working even when the email is
+        // opened on a different device/browser than the one used to sign up.
+        flowType: 'implicit',
       },
     })
   : null;

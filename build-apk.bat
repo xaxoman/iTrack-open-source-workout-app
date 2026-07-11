@@ -38,7 +38,7 @@ if %ERRORLEVEL% NEQ 0 (
 echo.
 echo 🤖 Building Android APK (Gradle)...
 cd android
-call gradlew assembleDebug
+call .\gradlew.bat assembleDebug
 if %ERRORLEVEL% NEQ 0 (
     echo ❌ Android build failed!
     cd "%ROOT_DIR%"

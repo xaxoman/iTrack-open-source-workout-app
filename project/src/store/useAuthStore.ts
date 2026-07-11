@@ -1,11 +1,21 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { Session, User } from '@supabase/supabase-js';
+import toast from 'react-hot-toast';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { pushDataToCloud, pullDataFromCloud } from '../lib/cloudSync';
 import { useWorkoutStore } from './useWorkoutStore';
 
 export type StorageMode = 'local' | 'supabase';
+
+// Whether this page load is the landing after clicking an email-confirmation
+// or magic link (Supabase appends the tokens to the URL hash). Captured at
+// import time, before the Supabase client strips them from the URL.
+const IS_AUTH_REDIRECT =
+  typeof window !== 'undefined' &&
+  (window.location.hash.includes('access_token') ||
+    new URLSearchParams(window.location.search).has('code'));
+let redirectHandled = false;
 
 interface AuthState {
   session: Session | null;
@@ -86,10 +96,19 @@ export const useAuthStore = create<AuthState>()(
 
         supabase.auth.onAuthStateChange((event, session) => {
           set({ session, user: session?.user ?? null });
-          if (event === 'SIGNED_IN' && session?.user && get().storageMode === 'supabase') {
-            reconcileWithCloud(session.user.id).catch((err) =>
-              console.error('Cloud reconcile failed:', err)
-            );
+          if (event === 'SIGNED_IN' && session?.user) {
+            // Landed here from an email-confirmation / magic link: the user just
+            // verified their account, so switch them to cloud storage and greet.
+            if (IS_AUTH_REDIRECT && !redirectHandled) {
+              redirectHandled = true;
+              set({ storageMode: 'supabase' });
+              toast.success('Email confirmed — cloud sync enabled');
+            }
+            if (get().storageMode === 'supabase') {
+              reconcileWithCloud(session.user.id).catch((err) =>
+                console.error('Cloud reconcile failed:', err)
+              );
+            }
           }
         });
       },
@@ -98,7 +117,17 @@ export const useAuthStore = create<AuthState>()(
         if (!supabase) throw new Error('Cloud storage is not configured.');
         set({ loading: true, error: null });
         try {
-          const { data, error } = await supabase.auth.signUp({ email, password });
+          const { data, error } = await supabase.auth.signUp({
+            email,
+            password,
+            options: {
+              // Send the confirmation link back to whatever origin the user
+              // signed up from (localhost in dev, the deployed site in prod)
+              // instead of the dashboard's static Site URL.
+              emailRedirectTo:
+                typeof window !== 'undefined' ? window.location.origin : undefined,
+            },
+          });
           if (error) throw error;
           // When email confirmation is enabled there is no session yet.
           return { needsConfirmation: !data.session };
