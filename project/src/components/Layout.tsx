@@ -1,17 +1,23 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, Outlet } from 'react-router-dom';
 import { useWorkoutStore } from '../store/useWorkoutStore';
-import { 
-  Home, 
-  Dumbbell, 
-  LineChart, 
-  Settings, 
-  Sun, 
-  Moon 
+import { useAuthStore } from '../store/useAuthStore';
+import { AuthModal } from './AuthModal';
+import {
+  Home,
+  Dumbbell,
+  LineChart,
+  Settings,
+  Sun,
+  Moon,
+  User,
+  UserCircle2
 } from 'lucide-react';
 
 export function Layout() {
   const { darkMode, toggleDarkMode } = useWorkoutStore();
+  const user = useAuthStore((state) => state.user);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
   return (
     <div className={`min-h-screen ${darkMode ? 'dark bg-gray-900' : 'bg-gray-50'}`}>
@@ -30,19 +36,39 @@ export function Layout() {
                 <NavLink to="/settings" icon={<Settings className="h-5 w-5" />} text="Settings" />
               </div>
             </div>
-            <button
-              onClick={toggleDarkMode}
-              className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
-            >
-              {darkMode ? (
-                <Sun className="h-5 w-5 text-gray-200" />
-              ) : (
-                <Moon className="h-5 w-5 text-gray-600" />
-              )}
-            </button>
+            <div className="flex items-center space-x-1">
+              <button
+                onClick={() => setIsAuthModalOpen(true)}
+                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 relative"
+                title={user ? `Signed in as ${user.email}` : 'Sign in / Sign up'}
+                aria-label={user ? 'Account' : 'Sign in or sign up'}
+              >
+                {user ? (
+                  <UserCircle2 className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+                ) : (
+                  <User className="h-5 w-5 text-gray-600 dark:text-gray-300" />
+                )}
+                {user && (
+                  <span className="absolute top-1.5 right-1.5 block h-2 w-2 rounded-full bg-green-500 ring-2 ring-white dark:ring-gray-800" />
+                )}
+              </button>
+              <button
+                onClick={toggleDarkMode}
+                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
+                aria-label="Toggle dark mode"
+              >
+                {darkMode ? (
+                  <Sun className="h-5 w-5 text-gray-200" />
+                ) : (
+                  <Moon className="h-5 w-5 text-gray-600" />
+                )}
+              </button>
+            </div>
           </div>
         </div>
       </nav>
+
+      <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
 
       {/* Increased top padding to account for the navbar */}
       <main className="pt-28 md:pt-24 pb-16 px-4 max-w-7xl mx-auto">

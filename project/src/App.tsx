@@ -10,6 +10,7 @@ import { requestWakeLock, releaseWakeLock } from './utils/wakeLock';
 import { backupManager } from './utils/backupManager';
 import { notificationManager } from './utils/notificationManager';
 import { useWorkoutStore } from './store/useWorkoutStore';
+import { useAuthStore } from './store/useAuthStore';
 
 function App() {
   const { notificationSettings, darkMode } = useWorkoutStore();
@@ -31,6 +32,9 @@ function App() {
 
     // Initialize notifications
     notificationManager.init();
+
+    // Initialize auth / cloud sync (restores session, sets up auto-sync)
+    useAuthStore.getState().init();
 
     // Release wake lock when app is unmounted
     return () => {

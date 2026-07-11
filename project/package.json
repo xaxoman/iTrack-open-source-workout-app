@@ -16,6 +16,7 @@
     "@capacitor/filesystem": "^7.1.5",
     "@capacitor/local-notifications": "^7.0.4",
     "@hello-pangea/dnd": "^16.5.0",
+    "@supabase/supabase-js": "^2.110.2",
     "clsx": "^2.1.0",
     "lucide-react": "^0.344.0",
     "react": "^18.3.1",
