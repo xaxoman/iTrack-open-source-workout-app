@@ -1,12 +1,13 @@
 import { supabase, USER_DATA_TABLE } from './supabase';
 import { useWorkoutStore } from '../store/useWorkoutStore';
 import type { NotificationSettings, UserProfile } from '../store/useWorkoutStore';
-import type { Workout, WorkoutTemplate } from '../types/workout';
+import type { Workout, WorkoutTemplate, EquipmentItem } from '../types/workout';
 
 /**
  * The shape of the app data we persist to the cloud. It mirrors exactly what
  * the "Export Data" feature writes to a local JSON file, so local and cloud
- * storage stay interchangeable.
+ * storage stay interchangeable. Note: the Gemini API key is deliberately NOT
+ * synced — it stays on the device.
  */
 export interface SyncableData {
   workouts: Workout[];
@@ -14,6 +15,9 @@ export interface SyncableData {
   userProfile: UserProfile | null;
   notificationSettings: NotificationSettings;
   darkMode: boolean;
+  equipment: EquipmentItem[];
+  exerciseWeights: Record<string, number>;
+  aiOnboarded: boolean;
 }
 
 /** Read the syncable slice of the current store state. */
@@ -25,6 +29,9 @@ export function getSyncableData(): SyncableData {
     userProfile: state.userProfile,
     notificationSettings: state.notificationSettings,
     darkMode: state.darkMode,
+    equipment: state.equipment,
+    exerciseWeights: state.exerciseWeights,
+    aiOnboarded: state.aiOnboarded,
   };
 }
 

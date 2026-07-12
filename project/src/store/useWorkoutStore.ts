@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { Exercise, Workout, WorkoutTemplate } from '../types/workout';
+import { Workout, WorkoutTemplate, EquipmentItem } from '../types/workout';
 
 export interface NotificationSettings {
   enabled: boolean;
@@ -21,6 +21,16 @@ export interface UserProfile {
   bodyFatMethod?: string;
 }
 
+/** Config + inputs for the AI Coach feature. */
+export interface AICoachConfig {
+  /** Device-local Gemini API key (never included in cloud sync). */
+  apiKey: string;
+  /** Gemini model id, e.g. 'gemini-3.5-flash'. */
+  model: string;
+  /** Reasoning effort for Gemini 3 models (thinkingLevel). */
+  thinkingLevel: 'low' | 'high';
+}
+
 interface WorkoutStore {
   workouts: Workout[];
   templates: WorkoutTemplate[];
@@ -29,6 +39,13 @@ interface WorkoutStore {
   darkMode: boolean;
   notificationSettings: NotificationSettings;
   userProfile: UserProfile | null;
+  // --- AI Coach ---
+  aiCoach: AICoachConfig;
+  equipment: EquipmentItem[];
+  /** Current working weight (kg) per exercise name. */
+  exerciseWeights: Record<string, number>;
+  /** Whether the first-time equipment/weights onboarding is done. */
+  aiOnboarded: boolean;
   addWorkout: (workout: Workout) => void;
   updateWorkout: (workout: Workout) => void;
   deleteWorkout: (id: string) => void;
@@ -40,8 +57,17 @@ interface WorkoutStore {
   deleteTemplate: (id: string) => void;
   updateNotificationSettings: (settings: NotificationSettings) => void;
   updateUserProfile: (profile: UserProfile) => void;
+  setAICoachConfig: (config: Partial<AICoachConfig>) => void;
+  updateEquipment: (equipment: EquipmentItem[]) => void;
+  updateExerciseWeights: (weights: Record<string, number>) => void;
+  setAiOnboarded: (onboarded: boolean) => void;
   importData: (data: Partial<WorkoutStore>) => void;
 }
+
+const DEFAULT_GEMINI_MODEL = 'gemini-3.5-flash';
+// Models known to be retired/unavailable for new keys or paid-only — existing
+// installs on these get moved to the current default via the persist migration.
+const STALE_MODELS = ['gemini-2.5-pro', 'gemini-2.5-flash', 'gemini-flash-latest'];
 
 export const useWorkoutStore = create<WorkoutStore>()(
   persist(
@@ -57,6 +83,10 @@ export const useWorkoutStore = create<WorkoutStore>()(
         time: '18:00'
       },
       userProfile: null,
+      aiCoach: { apiKey: '', model: DEFAULT_GEMINI_MODEL, thinkingLevel: 'high' },
+      equipment: [],
+      exerciseWeights: {},
+      aiOnboarded: false,
       addWorkout: (workout) =>
         set((state) => ({ workouts: [...state.workouts, workout] })),
       updateWorkout: (workout) =>
@@ -94,6 +124,12 @@ export const useWorkoutStore = create<WorkoutStore>()(
         set({ notificationSettings: settings }),
       updateUserProfile: (profile) =>
         set({ userProfile: profile }),
+      setAICoachConfig: (config) =>
+        set((state) => ({ aiCoach: { ...state.aiCoach, ...config } })),
+      updateEquipment: (equipment) => set({ equipment }),
+      updateExerciseWeights: (weights) =>
+        set((state) => ({ exerciseWeights: { ...state.exerciseWeights, ...weights } })),
+      setAiOnboarded: (onboarded) => set({ aiOnboarded: onboarded }),
       importData: (data) =>
         set((state) => ({
           workouts: data.workouts || state.workouts,
@@ -101,10 +137,32 @@ export const useWorkoutStore = create<WorkoutStore>()(
           userProfile: data.userProfile || state.userProfile,
           notificationSettings: data.notificationSettings || state.notificationSettings,
           darkMode: data.darkMode ?? state.darkMode,
+          // AI Coach user data (equipment/weights) syncs; the API key stays local.
+          equipment: data.equipment || state.equipment,
+          exerciseWeights: data.exerciseWeights || state.exerciseWeights,
+          aiOnboarded: data.aiOnboarded ?? state.aiOnboarded,
         })),
     }),
     {
       name: 'workout-storage',
+      version: 3,
+      migrate: (persisted, version) => {
+        const state = persisted as Partial<WorkoutStore> | undefined;
+        // Move known-stale default models to the current default, and backfill
+        // thinkingLevel for installs that predate it. Only rewrites stale
+        // defaults, never a deliberate custom model choice.
+        if (version < 3 && state?.aiCoach) {
+          const ai = state.aiCoach as Partial<AICoachConfig>;
+          state.aiCoach = {
+            apiKey: ai.apiKey ?? '',
+            model: STALE_MODELS.includes(ai.model ?? '')
+              ? DEFAULT_GEMINI_MODEL
+              : ai.model ?? DEFAULT_GEMINI_MODEL,
+            thinkingLevel: ai.thinkingLevel ?? 'high',
+          };
+        }
+        return state as WorkoutStore;
+      },
     }
   )
 );

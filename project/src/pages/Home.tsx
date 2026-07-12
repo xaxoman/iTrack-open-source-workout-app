@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Play, History, Plus } from 'lucide-react';
+import { Play, History, Plus, Sparkles, ArrowRight } from 'lucide-react';
 import { useWorkoutStore } from '../store/useWorkoutStore';
 
 export function Home() {
@@ -32,6 +32,36 @@ export function Home() {
             <Plus className="h-5 w-5 mr-2" />
             Create Routine
           </button>
+        </div>
+      </section>
+
+      {/* AI Coach */}
+      <section
+        onClick={() => navigate('/coach')}
+        className="group relative overflow-hidden rounded-2xl p-6 sm:p-7 cursor-pointer shadow-sm bg-gradient-to-br from-indigo-600 via-indigo-600 to-purple-600 transition-transform hover:scale-[1.01]"
+      >
+        {/* decorative glow */}
+        <div className="pointer-events-none absolute -top-10 -right-10 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
+        <div className="relative flex items-center gap-4">
+          <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-white/15 backdrop-blur-sm">
+            <Sparkles className="h-6 w-6 text-white" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              <h2 className="text-lg font-semibold text-white">AI Coach</h2>
+              <span className="rounded-full bg-white/20 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-white">
+                New
+              </span>
+            </div>
+            <p className="mt-0.5 text-sm text-indigo-100">
+              Analyze your progress and get a personalized workout — harder, easier, or just fresh.
+            </p>
+          </div>
+          <div className="hidden sm:flex flex-shrink-0 items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-medium text-indigo-700 shadow-sm transition-colors group-hover:bg-indigo-50">
+            Open Coach
+            <ArrowRight className="h-4 w-4" />
+          </div>
+          <ArrowRight className="h-5 w-5 text-white sm:hidden flex-shrink-0" />
         </div>
       </section>
 

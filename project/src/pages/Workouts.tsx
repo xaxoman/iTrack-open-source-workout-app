@@ -81,16 +81,20 @@ export function Workouts() {
 
   const handleCompleteWorkout = (duration: number, completionPercentage: number) => {
     if (activeTemplate) {
-      const workout = {
-        id: crypto.randomUUID(),
-        name: activeTemplate.name,
-        exercises: activeTemplate.exercises, // These already have sets from createExercisesWithSets
-        date: new Date().toISOString(),
-        duration,
-        completionPercentage,
-        completed: true,
-      };
-      addWorkout(workout);
+      // Only log workouts with actual progress. A 0% workout (quit before
+      // completing any exercise) shouldn't clutter the history or skew stats.
+      if (completionPercentage > 0) {
+        const workout = {
+          id: crypto.randomUUID(),
+          name: activeTemplate.name,
+          exercises: activeTemplate.exercises, // These already have sets from createExercisesWithSets
+          date: new Date().toISOString(),
+          duration,
+          completionPercentage,
+          completed: true,
+        };
+        addWorkout(workout);
+      }
       setActiveTemplate(null);
       setIsWorkoutActive(false);
     }

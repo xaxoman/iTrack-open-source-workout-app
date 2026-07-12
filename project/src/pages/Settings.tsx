@@ -10,12 +10,15 @@ import {
   RefreshCw,
   Database,
   ChevronDown,
+  Sparkles,
+  Dumbbell,
 } from 'lucide-react';
 import { useWorkoutStore } from '../store/useWorkoutStore';
 import { useAuthStore } from '../store/useAuthStore';
 import { NotificationSettingsModal } from '../components/NotificationSettingsModal';
 import { UserProfileModal } from '../components/UserProfileModal';
 import { AuthModal } from '../components/AuthModal';
+import { AICoachOnboardingModal } from '../components/AICoachOnboardingModal';
 import { isSupabaseConfigured } from '../lib/supabase';
 import type { NotificationSettings, UserProfile } from '../store/useWorkoutStore';
 
@@ -29,7 +32,10 @@ export function Settings() {
     updateUserProfile,
     workouts,
     templates,
-    importData
+    importData,
+    aiCoach,
+    setAICoachConfig,
+    aiOnboarded,
   } = useWorkoutStore();
 
   const {
@@ -45,6 +51,10 @@ export function Settings() {
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isDataMenuOpen, setIsDataMenuOpen] = useState(false);
+  const [isCoachOnboardingOpen, setIsCoachOnboardingOpen] = useState(false);
+  const [apiKeyInput, setApiKeyInput] = useState(aiCoach.apiKey);
+  const [modelInput, setModelInput] = useState(aiCoach.model);
+  const [reasoningInput, setReasoningInput] = useState<'low' | 'high'>(aiCoach.thinkingLevel);
 
   const handleSelectStorage = (mode: 'local' | 'supabase') => {
     if (mode === 'supabase') {
@@ -205,6 +215,100 @@ export function Settings() {
               </button>
             </div>
           )}
+        </div>
+      </div>
+
+      {/* AI Coach */}
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 space-y-4">
+        <div className="flex items-center space-x-3">
+          <Sparkles className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+          <div>
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white">AI Coach</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Gemini API key & model (stored only on this device)
+            </p>
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Gemini API key
+          </label>
+          <input
+            type="password"
+            value={apiKeyInput}
+            onChange={(e) => setApiKeyInput(e.target.value)}
+            placeholder="AIza..."
+            autoComplete="off"
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white placeholder-gray-400"
+          />
+          <p className="mt-1 text-xs text-gray-400">
+            Get a free key at{' '}
+            <a
+              href="https://aistudio.google.com/apikey"
+              target="_blank"
+              rel="noreferrer"
+              className="underline text-indigo-600 dark:text-indigo-400"
+            >
+              aistudio.google.com/apikey
+            </a>
+          </p>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Model
+          </label>
+          <input
+            type="text"
+            value={modelInput}
+            onChange={(e) => setModelInput(e.target.value)}
+            placeholder="gemini-3.5-flash"
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white placeholder-gray-400"
+          />
+          <p className="mt-1 text-xs text-gray-400">
+            Free tier: <code>gemini-3.5-flash</code> or <code>gemini-flash-latest</code>. Pro
+            models (e.g. <code>gemini-3.1-pro-preview</code>) need billing.
+          </p>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Reasoning
+          </label>
+          <select
+            value={reasoningInput}
+            onChange={(e) => setReasoningInput(e.target.value as 'low' | 'high')}
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white"
+          >
+            <option value="high">High — deeper analysis (slower)</option>
+            <option value="low">Low — faster, cheaper</option>
+          </select>
+          <p className="mt-1 text-xs text-gray-400">
+            Applies to Gemini 3 models (thinking level).
+          </p>
+        </div>
+
+        <div className="flex items-center justify-between">
+          <button
+            onClick={() => setIsCoachOnboardingOpen(true)}
+            className="flex items-center gap-1.5 text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
+          >
+            <Dumbbell className="h-4 w-4" />
+            {aiOnboarded ? 'Edit equipment & weights' : 'Set up equipment & weights'}
+          </button>
+          <button
+            onClick={() => {
+              setAICoachConfig({
+                apiKey: apiKeyInput.trim(),
+                model: modelInput.trim() || 'gemini-3.5-flash',
+                thinkingLevel: reasoningInput,
+              });
+            }}
+            className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md"
+          >
+            Save
+          </button>
         </div>
       </div>
 
@@ -383,6 +487,11 @@ export function Settings() {
       <AuthModal
         isOpen={isAuthModalOpen}
         onClose={() => setIsAuthModalOpen(false)}
+      />
+
+      <AICoachOnboardingModal
+        isOpen={isCoachOnboardingOpen}
+        onClose={() => setIsCoachOnboardingOpen(false)}
       />
     </div>
   );

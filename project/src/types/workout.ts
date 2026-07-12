@@ -32,3 +32,11 @@ export interface WorkoutTemplate {
   exercises: Omit<Exercise, 'sets'>[];
   numberOfSets: number; // New field to store the number of sets
 }
+
+/** A piece of equipment the user owns, used to ground AI recommendations. */
+export interface EquipmentItem {
+  id: string;
+  type: string; // e.g. 'Dumbbells', 'Kettlebell', 'Barbell', 'Bodyweight'
+  maxWeight?: number; // kg — heaviest available for weighted equipment
+  notes?: string;
+}

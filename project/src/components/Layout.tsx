@@ -11,7 +11,8 @@ import {
   Sun,
   Moon,
   User,
-  UserCircle2
+  UserCircle2,
+  Sparkles
 } from 'lucide-react';
 
 export function Layout() {
@@ -33,6 +34,7 @@ export function Layout() {
                 <NavLink to="/" icon={<Home className="h-5 w-5" />} text="Home" />
                 <NavLink to="/workouts" icon={<Dumbbell className="h-5 w-5" />} text="Workouts" />
                 <NavLink to="/progress" icon={<LineChart className="h-5 w-5" />} text="Progress" />
+                <NavLink to="/coach" icon={<Sparkles className="h-5 w-5" />} text="Coach" />
                 <NavLink to="/settings" icon={<Settings className="h-5 w-5" />} text="Settings" />
               </div>
             </div>

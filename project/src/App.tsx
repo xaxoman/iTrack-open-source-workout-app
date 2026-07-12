@@ -6,6 +6,7 @@ import { Home } from './pages/Home';
 import { Workouts } from './pages/Workouts';
 import { Progress } from './pages/Progress';
 import { Settings } from './pages/Settings';
+import { Coach } from './pages/Coach';
 import { requestWakeLock, releaseWakeLock } from './utils/wakeLock';
 import { backupManager } from './utils/backupManager';
 import { notificationManager } from './utils/notificationManager';
@@ -58,6 +59,7 @@ function App() {
           <Route index element={<Home />} />
           <Route path="workouts" element={<Workouts />} />
           <Route path="progress" element={<Progress />} />
+          <Route path="coach" element={<Coach />} />
           <Route path="settings" element={<Settings />} />
         </Route>
       </Routes>
