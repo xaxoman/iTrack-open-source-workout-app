@@ -30,6 +30,7 @@ export function Settings() {
     updateNotificationSettings,
     userProfile,
     updateUserProfile,
+    weightLog,
     workouts,
     templates,
     importData,
@@ -92,6 +93,7 @@ export function Settings() {
       workouts,
       templates,
       userProfile,
+      weightLog,
       notificationSettings,
       darkMode
     };

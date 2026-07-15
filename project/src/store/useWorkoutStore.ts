@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { Workout, WorkoutTemplate, EquipmentItem } from '../types/workout';
+import { Workout, WorkoutTemplate, EquipmentItem, WeightEntry } from '../types/workout';
 
 export interface NotificationSettings {
   enabled: boolean;
@@ -39,6 +39,8 @@ interface WorkoutStore {
   darkMode: boolean;
   notificationSettings: NotificationSettings;
   userProfile: UserProfile | null;
+  /** Body-weight log, kept sorted by date ascending, one entry per day. */
+  weightLog: WeightEntry[];
   // --- AI Coach ---
   aiCoach: AICoachConfig;
   equipment: EquipmentItem[];
@@ -57,6 +59,8 @@ interface WorkoutStore {
   deleteTemplate: (id: string) => void;
   updateNotificationSettings: (settings: NotificationSettings) => void;
   updateUserProfile: (profile: UserProfile) => void;
+  addWeightEntry: (entry: WeightEntry) => void;
+  deleteWeightEntry: (id: string) => void;
   setAICoachConfig: (config: Partial<AICoachConfig>) => void;
   updateEquipment: (equipment: EquipmentItem[]) => void;
   updateExerciseWeights: (weights: Record<string, number>) => void;
@@ -83,6 +87,7 @@ export const useWorkoutStore = create<WorkoutStore>()(
         time: '18:00'
       },
       userProfile: null,
+      weightLog: [],
       aiCoach: { apiKey: '', model: DEFAULT_GEMINI_MODEL, thinkingLevel: 'high' },
       equipment: [],
       exerciseWeights: {},
@@ -124,6 +129,22 @@ export const useWorkoutStore = create<WorkoutStore>()(
         set({ notificationSettings: settings }),
       updateUserProfile: (profile) =>
         set({ userProfile: profile }),
+      addWeightEntry: (entry) =>
+        set((state) => {
+          // One measurement per calendar day: a new entry for the same day
+          // replaces the old one (like editing the value in a plan table).
+          const day = entry.date.slice(0, 10);
+          const rest = state.weightLog.filter((e) => e.date.slice(0, 10) !== day);
+          return {
+            weightLog: [...rest, entry].sort(
+              (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+            ),
+          };
+        }),
+      deleteWeightEntry: (id) =>
+        set((state) => ({
+          weightLog: state.weightLog.filter((e) => e.id !== id),
+        })),
       setAICoachConfig: (config) =>
         set((state) => ({ aiCoach: { ...state.aiCoach, ...config } })),
       updateEquipment: (equipment) => set({ equipment }),
@@ -135,6 +156,7 @@ export const useWorkoutStore = create<WorkoutStore>()(
           workouts: data.workouts || state.workouts,
           templates: data.templates || state.templates,
           userProfile: data.userProfile || state.userProfile,
+          weightLog: data.weightLog || state.weightLog,
           notificationSettings: data.notificationSettings || state.notificationSettings,
           darkMode: data.darkMode ?? state.darkMode,
           // AI Coach user data (equipment/weights) syncs; the API key stays local.

@@ -1,7 +1,7 @@
 import { supabase, USER_DATA_TABLE } from './supabase';
 import { useWorkoutStore } from '../store/useWorkoutStore';
 import type { NotificationSettings, UserProfile } from '../store/useWorkoutStore';
-import type { Workout, WorkoutTemplate, EquipmentItem } from '../types/workout';
+import type { Workout, WorkoutTemplate, EquipmentItem, WeightEntry } from '../types/workout';
 
 /**
  * The shape of the app data we persist to the cloud. It mirrors exactly what
@@ -13,6 +13,7 @@ export interface SyncableData {
   workouts: Workout[];
   templates: WorkoutTemplate[];
   userProfile: UserProfile | null;
+  weightLog: WeightEntry[];
   notificationSettings: NotificationSettings;
   darkMode: boolean;
   equipment: EquipmentItem[];
@@ -27,6 +28,7 @@ export function getSyncableData(): SyncableData {
     workouts: state.workouts,
     templates: state.templates,
     userProfile: state.userProfile,
+    weightLog: state.weightLog,
     notificationSettings: state.notificationSettings,
     darkMode: state.darkMode,
     equipment: state.equipment,

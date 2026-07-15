@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useWorkoutStore } from '../store/useWorkoutStore';
 import { Plus, Calendar, Trash2, Play, Edit, Clock, ClipboardList, History as HistoryIcon } from 'lucide-react';
 import { CreateRoutineModal } from '../components/CreateRoutineModal';
+import { LogWeightModal } from '../components/LogWeightModal';
 import { EditTemplateModal } from '../components/EditTemplateModal';
 import { ConfirmDeleteModal } from '../components/ConfirmDeleteModal';
 import { ActiveWorkout } from '../components/ActiveWorkout';
@@ -11,6 +12,7 @@ import { formatTime } from '../utils/formatTime';
 export function Workouts() {
   const { workouts, templates, deleteTemplate, addWorkout, setIsWorkoutActive } = useWorkoutStore();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isWeightPromptOpen, setIsWeightPromptOpen] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<WorkoutTemplate | null>(null);
   const [activeTemplate, setActiveTemplate] = useState<(WorkoutTemplate & { exercises: Exercise[] }) | null>(null);
   const [deleteConfirmModal, setDeleteConfirmModal] = useState<{
@@ -94,6 +96,9 @@ export function Workouts() {
           completed: true,
         };
         addWorkout(workout);
+        // Like a plan journal: offer to record today's body weight right
+        // after the session, so the weight chart stays up to date.
+        setIsWeightPromptOpen(true);
       }
       setActiveTemplate(null);
       setIsWorkoutActive(false);
@@ -237,6 +242,13 @@ export function Workouts() {
       <CreateRoutineModal
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
+      />
+
+      <LogWeightModal
+        isOpen={isWeightPromptOpen}
+        onClose={() => setIsWeightPromptOpen(false)}
+        title="Nice work! Log today's weight?"
+        subtitle="Optional — keeps your weight trend on the Progress page up to date."
       />
 
       {editingTemplate && (

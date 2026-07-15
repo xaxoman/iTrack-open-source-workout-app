@@ -72,6 +72,7 @@ export function Coach() {
     exerciseWeights,
     templates,
     workouts,
+    weightLog,
     aiCoach,
     aiOnboarded,
     setAICoachConfig,
@@ -101,8 +102,9 @@ export function Coach() {
       recentWorkouts: [...workouts].sort(
         (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
       ),
+      weightLog,
     }),
-    [userProfile, equipment, exerciseWeights, templates, workouts]
+    [userProfile, equipment, exerciseWeights, templates, workouts, weightLog]
   );
 
   const runAnalyze = async () => {
