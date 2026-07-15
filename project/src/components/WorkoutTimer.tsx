@@ -20,9 +20,9 @@ export function WorkoutTimer() {
   };
 
   return (
-    <div className="flex items-center justify-center gap-2.5 py-3">
-      <Timer className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
-      <span className="text-2xl font-mono font-medium tabular-nums tracking-tight text-gray-900 dark:text-white">
+    <div className="flex items-center justify-center gap-2 py-1">
+      <Timer className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+      <span className="text-xl font-mono font-medium tabular-nums tracking-tight text-gray-900 dark:text-white">
         {formatTime(seconds)}
       </span>
     </div>

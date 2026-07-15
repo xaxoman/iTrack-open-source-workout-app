@@ -75,12 +75,12 @@ export function Layout() {
         <Outlet />
       </main>
 
+      {/* Coach is deliberately not in the tab bar — it opens from the Home banner. */}
       <nav className="fixed bottom-0 left-0 right-0 md:hidden z-40 bg-white/90 dark:bg-gray-950/90 backdrop-blur-xl border-t border-gray-200/70 dark:border-white/[0.07] pb-safe">
         <div className="flex justify-around px-2 py-2">
           <MobileNavLink to="/" icon={<Home className="h-5 w-5" />} label="Home" />
           <MobileNavLink to="/workouts" icon={<Dumbbell className="h-5 w-5" />} label="Workouts" />
           <MobileNavLink to="/progress" icon={<LineChart className="h-5 w-5" />} label="Progress" />
-          <MobileNavLink to="/coach" icon={<Sparkles className="h-5 w-5" />} label="Coach" />
           <MobileNavLink to="/settings" icon={<Settings className="h-5 w-5" />} label="Settings" />
         </div>
       </nav>
