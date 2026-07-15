@@ -97,15 +97,15 @@ export function CreateRoutineModal({ isOpen, onClose }: CreateRoutineModalProps)
   };
 
   return createPortal(
-    <div className="fixed inset-0 w-full h-full bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-3xl max-h-[90vh] overflow-y-auto">
-        <div className="sticky top-0 bg-white dark:bg-gray-800 z-10 flex items-center justify-between p-4 border-b dark:border-gray-700">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+    <div className="modal-overlay">
+      <div className="modal-panel max-w-3xl max-h-[90vh] overflow-y-auto">
+        <div className="sticky top-0 bg-white dark:bg-gray-900 z-10 flex items-center justify-between p-4 border-b border-gray-100 dark:border-white/[0.07] rounded-t-2xl">
+          <h2 className="text-lg font-semibold tracking-tight text-gray-900 dark:text-white">
             Create New Routine
           </h2>
           <button
             onClick={onClose}
-            className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+            className="icon-btn"
           >
             <X className="h-5 w-5" />
           </button>
@@ -114,7 +114,7 @@ export function CreateRoutineModal({ isOpen, onClose }: CreateRoutineModalProps)
           <div className="mb-6">
             <label
               htmlFor="name"
-              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              className="label"
             >
               Routine Name
             </label>
@@ -123,7 +123,7 @@ export function CreateRoutineModal({ isOpen, onClose }: CreateRoutineModalProps)
               id="name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+              className="input"
               placeholder='Enter routine name'
               required
             />
@@ -132,7 +132,7 @@ export function CreateRoutineModal({ isOpen, onClose }: CreateRoutineModalProps)
           <div className="mb-6">
             <label
               htmlFor="sets"
-              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              className="label"
             >
               Number of Sets
             </label>
@@ -143,7 +143,7 @@ export function CreateRoutineModal({ isOpen, onClose }: CreateRoutineModalProps)
               max="10"
               value={numberOfSets}
               onChange={(e) => setNumberOfSets(Math.max(1, parseInt(e.target.value) || 1))}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+              className="input"
               required
             />
             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
@@ -152,12 +152,12 @@ export function CreateRoutineModal({ isOpen, onClose }: CreateRoutineModalProps)
           </div>
 
           <div className="mb-6">
-            <div className="sticky top-[73px] bg-white dark:bg-gray-800 z-10 flex justify-between items-center py-4 px-6 shadow-sm">
-              <h3 className="text-lg font-medium text-gray-900 dark:text-white">Exercises</h3>
+            <div className="sticky top-[65px] bg-white dark:bg-gray-900 z-10 flex justify-between items-center py-4">
+              <h3 className="text-base font-semibold tracking-tight text-gray-900 dark:text-white">Exercises</h3>
               <button
                 type="button"
                 onClick={addExercise}
-                className="flex items-center px-3 py-1.5 text-sm bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+                className="btn-primary px-3 py-1.5 text-sm"
               >
                 <Plus className="h-4 w-4 mr-1" />
                 Add Exercise
@@ -173,7 +173,7 @@ export function CreateRoutineModal({ isOpen, onClose }: CreateRoutineModalProps)
                           <div
                             ref={index === exercises.length - 1 ? lastExerciseRef : provided.innerRef}
                             {...provided.draggableProps}
-                            className="bg-white dark:bg-gray-800 rounded-lg mb-4"
+                            className="mb-3"
                           >
                             <div className="flex items-start">
                               <div
@@ -201,17 +201,17 @@ export function CreateRoutineModal({ isOpen, onClose }: CreateRoutineModalProps)
             </DragDropContext>
           </div>
 
-          <div className="sticky bottom-0 bg-white dark:bg-gray-800 flex justify-end space-x-3 border-t dark:border-gray-700 pt-4">
+          <div className="sticky bottom-0 bg-white dark:bg-gray-900 flex justify-end space-x-3 border-t border-gray-100 dark:border-white/[0.07] py-4">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-md"
+              className="btn-ghost"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md"
+              className="btn-primary"
             >
               Create Routine
             </button>

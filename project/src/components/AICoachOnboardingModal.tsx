@@ -167,20 +167,19 @@ export function AICoachOnboardingModal({ isOpen, onClose, onSaved }: Props) {
     onClose();
   };
 
-  const inputClass =
-    'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white placeholder-gray-400';
+  const inputClass = 'input';
 
   return createPortal(
-    <div className="fixed inset-0 w-full h-full bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-lg max-h-[90vh] shadow-xl flex flex-col">
-        <div className="flex items-center justify-between p-6 border-b dark:border-gray-700">
+    <div className="modal-overlay">
+      <div className="modal-panel max-w-lg max-h-[90vh] flex flex-col">
+        <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-white/[0.07]">
           <div className="flex items-center space-x-2">
             <Dumbbell className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Your equipment & weights</h2>
+            <h2 className="text-lg font-semibold tracking-tight text-gray-900 dark:text-white">Your equipment & weights</h2>
           </div>
           <button
             onClick={onClose}
-            className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+            className="icon-btn"
             aria-label="Close"
           >
             <X className="h-5 w-5" />
@@ -194,7 +193,7 @@ export function AICoachOnboardingModal({ isOpen, onClose, onSaved }: Props) {
 
           {/* Equipment */}
           <div>
-            <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">
               What equipment do you have?
             </h3>
             <div className="space-y-2">
@@ -203,10 +202,10 @@ export function AICoachOnboardingModal({ isOpen, onClose, onSaved }: Props) {
                 return (
                   <div
                     key={p.type}
-                    className={`flex items-center gap-3 rounded-lg border p-3 ${
+                    className={`flex items-center gap-3 rounded-xl border p-3 transition-colors ${
                       st.selected
-                        ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20'
-                        : 'border-gray-200 dark:border-gray-700'
+                        ? 'border-indigo-500 bg-indigo-50/70 dark:border-indigo-400/60 dark:bg-indigo-500/10'
+                        : 'border-gray-200 hover:border-gray-300 dark:border-white/[0.08] dark:hover:border-white/[0.16]'
                     }`}
                   >
                     <label className="flex items-center gap-2 flex-1 cursor-pointer">
@@ -214,7 +213,7 @@ export function AICoachOnboardingModal({ isOpen, onClose, onSaved }: Props) {
                         type="checkbox"
                         checked={st.selected}
                         onChange={() => togglePreset(p.type)}
-                        className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                        className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-800"
                       />
                       <span className="text-sm text-gray-900 dark:text-white">{p.type}</span>
                     </label>
@@ -228,7 +227,7 @@ export function AICoachOnboardingModal({ isOpen, onClose, onSaved }: Props) {
                           value={st.maxWeight}
                           onChange={(e) => setPresetWeight(p.type, e.target.value)}
                           placeholder="max kg"
-                          className="w-24 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white placeholder-gray-400"
+                          className="input w-24 px-2 py-1 text-sm"
                         />
                       </div>
                     )}
@@ -259,11 +258,11 @@ export function AICoachOnboardingModal({ isOpen, onClose, onSaved }: Props) {
                     )
                   }
                   placeholder="max kg"
-                  className="w-28 px-2 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white placeholder-gray-400"
+                  className="input w-28 px-2 py-2 text-sm"
                 />
                 <button
                   onClick={() => setCustomItems((prev) => prev.filter((_, idx) => idx !== i))}
-                  className="p-2 text-gray-400 hover:text-red-500"
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-500/10"
                   aria-label="Remove"
                 >
                   <Trash2 className="h-4 w-4" />
@@ -272,7 +271,7 @@ export function AICoachOnboardingModal({ isOpen, onClose, onSaved }: Props) {
             ))}
             <button
               onClick={() => setCustomItems((prev) => [...prev, { type: '', maxWeight: '' }])}
-              className="mt-2 flex items-center gap-1 text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300"
+              className="link mt-2 flex items-center gap-1"
             >
               <Plus className="h-4 w-4" /> Add other equipment
             </button>
@@ -280,7 +279,7 @@ export function AICoachOnboardingModal({ isOpen, onClose, onSaved }: Props) {
 
           {/* Current weights per exercise (AI-filtered to weightable moves) */}
           <div>
-            <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-1">
               Current working weight per exercise
             </h3>
             <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
@@ -316,7 +315,7 @@ export function AICoachOnboardingModal({ isOpen, onClose, onSaved }: Props) {
                       value={weights[name] ?? ''}
                       onChange={(e) => setWeights((prev) => ({ ...prev, [name]: e.target.value }))}
                       placeholder="kg"
-                      className="w-24 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white placeholder-gray-400"
+                      className="input w-24 px-2 py-1 text-sm"
                     />
                   </div>
                 ))}
@@ -325,16 +324,16 @@ export function AICoachOnboardingModal({ isOpen, onClose, onSaved }: Props) {
           </div>
         </div>
 
-        <div className="flex justify-end space-x-3 p-6 border-t dark:border-gray-700">
+        <div className="flex justify-end space-x-3 p-6 border-t border-gray-100 dark:border-white/[0.07]">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-md"
+            className="btn-ghost"
           >
             Cancel
           </button>
           <button
             onClick={handleSave}
-            className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md"
+            className="btn-primary"
           >
             Save
           </button>

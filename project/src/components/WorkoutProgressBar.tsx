@@ -25,14 +25,14 @@ export function WorkoutProgressBar({ total, completed, className = '' }: Workout
 
   return (
     <div className={`${isPWA ? 'pt-12 mt-10' : 'pt-3 mt-3'} ${className}`}>
-      <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 mb-4">
-      <div
-      className="bg-indigo-600 h-2.5 rounded-full transition-all duration-300 ease-in-out"
-      style={{ width: `${percentage}%` }}
-      />
-      <div className="text-center text-sm text-gray-600 dark:text-gray-400 mt-1">
-      {percentage}% Complete
-      </div>
+      <div className="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-2 mb-4">
+        <div
+          className="bg-gradient-to-r from-indigo-600 to-violet-500 h-2 rounded-full transition-all duration-300 ease-in-out"
+          style={{ width: `${percentage}%` }}
+        />
+        <div className="text-center text-xs font-medium text-gray-500 dark:text-gray-400 mt-1.5">
+          {percentage}% Complete
+        </div>
       </div>
     </div>
   );
