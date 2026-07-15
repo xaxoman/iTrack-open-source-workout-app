@@ -268,10 +268,6 @@ export function Settings() {
             placeholder="gemini-3.5-flash"
             className="input"
           />
-          <p className="mt-1 text-xs text-gray-400">
-            Free tier: <code>gemini-3.5-flash</code> or <code>gemini-flash-latest</code>. Pro
-            models (e.g. <code>gemini-3.1-pro-preview</code>) need billing.
-          </p>
         </div>
 
         <div>

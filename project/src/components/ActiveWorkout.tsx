@@ -148,15 +148,16 @@ export function ActiveWorkout({ name, exercises, onComplete, onQuit }: ActiveWor
 
   return (
     <div className="space-y-6">
-      <div className="fixed top-0 left-0 right-0 bg-white/90 dark:bg-gray-950/90 backdrop-blur-xl border-b border-gray-200/70 dark:border-white/[0.07] px-4 pt-[4.25rem] pb-0 z-10">
-        <div className="max-w-7xl mx-auto space-y-4">
-          <h2 className="text-xl font-semibold tracking-tight text-gray-900 dark:text-white text-center">{name}</h2>
+      {/* Header clears the app navbar (4.25rem) plus the device status bar. */}
+      <div className="fixed top-0 left-0 right-0 bg-white/90 dark:bg-gray-950/90 backdrop-blur-xl border-b border-gray-200/70 dark:border-white/[0.07] px-4 pt-[calc(env(safe-area-inset-top)+4.25rem)] pb-2 z-10">
+        <div className="max-w-7xl mx-auto space-y-1">
+          <h2 className="text-lg font-semibold tracking-tight text-gray-900 dark:text-white text-center">{name}</h2>
           <WorkoutProgressBar total={exercises.length} completed={completedExercises.length} />
           <WorkoutTimer />
         </div>
       </div>
 
-      <div className="space-y-4 pt-28 pb-20">
+      <div className="space-y-4 pt-[calc(env(safe-area-inset-top)+5.5rem)] pb-20">
         {exercises.map((exercise, index) => (
           <div
             key={exercise.id}
