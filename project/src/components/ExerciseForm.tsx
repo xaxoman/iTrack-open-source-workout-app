@@ -73,7 +73,7 @@ export function ExerciseForm({ exercise, onChange, onRemove }: ExerciseFormProps
   };
 
   return (
-    <div className={`border dark:border-gray-700 rounded-lg transition-all duration-200 ${isExpanded ? 'p-4' : 'p-3'}`}>
+    <div className={`rounded-xl border border-gray-200/70 bg-white dark:border-white/[0.08] dark:bg-gray-900 transition-all duration-200 ${isExpanded ? 'p-4' : 'p-3'}`}>
       <div 
         className="flex justify-between items-center cursor-pointer"
         onClick={toggleExpand}
@@ -84,7 +84,7 @@ export function ExerciseForm({ exercise, onChange, onRemove }: ExerciseFormProps
             <ChevronRight className="h-5 w-5 text-gray-500 mr-2" />
           }
           <div>
-            <h3 className="text-lg font-medium text-gray-900 dark:text-white truncate">
+            <h3 className="text-base font-medium text-gray-900 dark:text-white truncate">
               {exercise.name || 'Untitled Exercise'}
             </h3>
             {!isExpanded && exercise.name && (
@@ -99,7 +99,7 @@ export function ExerciseForm({ exercise, onChange, onRemove }: ExerciseFormProps
             e.stopPropagation();  // Prevent toggleExpand from being called
             onRemove();
           }}
-          className="text-gray-500 hover:text-red-500 dark:text-gray-400 ml-2"
+          className="ml-2 inline-flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-500/10"
         >
           <X className="h-5 w-5" />
         </button>
@@ -108,34 +108,34 @@ export function ExerciseForm({ exercise, onChange, onRemove }: ExerciseFormProps
       {isExpanded && (
         <div className="space-y-4 mt-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label className="label">
               Exercise Name
             </label>
             <input
               type="text"
               value={exercise.name}
               onChange={(e) => onChange('name', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+              className="input"
               placeholder='e.g., "Push Up"'
               required
             />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label className="label">
                 Type
               </label>
               <select
                 value={exercise.type}
                 onChange={(e) => onChange('type', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                className="input"
               >
                 <option value="reps">Repetitions</option>
                 <option value="time">Time</option>
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label className="label">
                 {exercise.type === 'reps' ? 'Repetitions' : 'Time (seconds)'}
               </label>
               <input
@@ -143,25 +143,25 @@ export function ExerciseForm({ exercise, onChange, onRemove }: ExerciseFormProps
               
                 value={exercise.reps || 1}
                 onChange={handleNumberChange}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                className="input"
                 required
               />
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label className="label">
               Video or GIF URL (YouTube or image link)
             </label>
             <input
               type="url"
               value={exercise.videoUrl || ''}
               onChange={(e) => onChange('videoUrl', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+              className="input"
               placeholder="https://..."
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label className="label">
               Target Muscles
             </label>
             <div className="relative" ref={dropdownRef}>
@@ -171,7 +171,7 @@ export function ExerciseForm({ exercise, onChange, onRemove }: ExerciseFormProps
                   e.stopPropagation();  // Prevent toggleExpand from being called
                   setIsDropdownOpen(!isDropdownOpen);
                 }}
-                className="w-full flex justify-between items-center px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-white dark:bg-gray-700 text-left focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                className="input flex justify-between items-center text-left"
               >
                 <span className="text-gray-700 dark:text-gray-300">
                   {exercise.targetMuscles.length === 0 
@@ -187,7 +187,7 @@ export function ExerciseForm({ exercise, onChange, onRemove }: ExerciseFormProps
                   {exercise.targetMuscles.map(muscle => (
                     <span 
                       key={muscle} 
-                      className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200"
+                      className="inline-flex items-center rounded-full bg-indigo-50 px-2.5 py-0.5 text-xs font-medium text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-300"
                     >
                       {muscle}
                     </span>
@@ -198,13 +198,13 @@ export function ExerciseForm({ exercise, onChange, onRemove }: ExerciseFormProps
               {/* Dropdown menu */}
               {isDropdownOpen && (
                 <div 
-                  className="absolute z-10 mt-1 w-full bg-white dark:bg-gray-800 shadow-lg max-h-60 rounded-md py-1 ring-1 ring-black ring-opacity-5 overflow-auto focus:outline-none"
+                  className="absolute z-10 mt-1.5 w-full rounded-xl border border-gray-200/70 bg-white py-1 shadow-xl shadow-gray-950/10 dark:border-white/10 dark:bg-gray-900 max-h-60 overflow-auto focus:outline-none"
                   onClick={(e) => e.stopPropagation()}  // Prevent toggleExpand from being called
                 >
                   {muscleGroups.map((muscle) => (
                     <div
                       key={muscle}
-                      className="flex items-center px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+                      className="flex items-center px-4 py-2 transition-colors hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer"
                       onClick={() => toggleMuscleSelection(muscle)}
                     >
                       <div className={`flex h-5 items-center ${exercise.targetMuscles.includes(muscle) ? 'text-indigo-600' : 'text-transparent'}`}>

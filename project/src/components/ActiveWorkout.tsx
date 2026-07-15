@@ -148,9 +148,9 @@ export function ActiveWorkout({ name, exercises, onComplete, onQuit }: ActiveWor
 
   return (
     <div className="space-y-6">
-      <div className="fixed top-0 left-0 right-0 bg-white dark:bg-gray-800 shadow-md px-4 pt-4 pb-0 z-10">
+      <div className="fixed top-0 left-0 right-0 bg-white/90 dark:bg-gray-950/90 backdrop-blur-xl border-b border-gray-200/70 dark:border-white/[0.07] px-4 pt-[4.25rem] pb-0 z-10">
         <div className="max-w-7xl mx-auto space-y-4">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white text-center">{name}</h2>
+          <h2 className="text-xl font-semibold tracking-tight text-gray-900 dark:text-white text-center">{name}</h2>
           <WorkoutProgressBar total={exercises.length} completed={completedExercises.length} />
           <WorkoutTimer />
         </div>
@@ -161,17 +161,17 @@ export function ActiveWorkout({ name, exercises, onComplete, onQuit }: ActiveWor
           <div
             key={exercise.id}
             ref={index === currentExercise ? currentExerciseRef : null}
-            className={`bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm ${
-              index === currentExercise ? 'ring-2 ring-indigo-500' : ''
+            className={`card p-4 transition-shadow ${
+              index === currentExercise ? 'ring-2 ring-indigo-500 dark:ring-indigo-400 border-transparent dark:border-transparent' : ''
             }`}
             onClick={() => setCurrentExercise(index)}
           >
             {exercise.type === 'time' && index === currentExercise && (
-              <div className="mb-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+              <div className="mb-4 p-4 bg-gray-50 dark:bg-gray-800/60 rounded-xl">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
                     <Timer className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
-                    <span className="text-2xl font-mono font-semibold text-indigo-600 dark:text-indigo-400">
+                    <span className="text-2xl font-mono font-semibold tabular-nums text-indigo-600 dark:text-indigo-400">
                       {formatTime(exerciseTimers[exercise.id] || exercise.reps)}
                     </span>
                   </div>
@@ -181,7 +181,7 @@ export function ActiveWorkout({ name, exercises, onComplete, onQuit }: ActiveWor
                         e.stopPropagation();
                         startExerciseTimer(exercise.id);
                       }}
-                      className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                      className="btn-primary"
                     >
                       Start Timer
                     </button>
@@ -203,7 +203,11 @@ export function ActiveWorkout({ name, exercises, onComplete, onQuit }: ActiveWor
                     e.stopPropagation();
                     handleExerciseComplete(exercise.id);
                   }}
-                  className="text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400"
+                  className={`flex-shrink-0 transition-colors ${
+                    completedExercises.includes(exercise.id)
+                      ? 'text-indigo-600 dark:text-indigo-400'
+                      : 'text-gray-300 hover:text-indigo-600 dark:text-gray-600 dark:hover:text-indigo-400'
+                  }`}
                 >
                   {completedExercises.includes(exercise.id) ? (
                     <CheckCircle className="h-6 w-6" />
@@ -228,7 +232,7 @@ export function ActiveWorkout({ name, exercises, onComplete, onQuit }: ActiveWor
                 </div>
               </div>
               
-              <div className="text-sm text-gray-500 dark:text-gray-400">
+              <div className="flex-shrink-0 rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-300">
                 {index + 1}/{exercises.length}
               </div>
             </div>
@@ -236,11 +240,11 @@ export function ActiveWorkout({ name, exercises, onComplete, onQuit }: ActiveWor
         ))}
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 p-4 border-t dark:border-gray-700 z-10">
+      <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-950 p-4 border-t border-gray-200/70 dark:border-white/[0.07] z-50 pb-safe">
         <div className="max-w-7xl mx-auto">
           <button
             onClick={handleComplete}
-            className="w-full px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-center font-medium"
+            className="btn-primary w-full py-3"
           >
             Complete Workout
           </button>

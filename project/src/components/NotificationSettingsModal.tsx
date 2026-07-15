@@ -57,18 +57,18 @@ export function NotificationSettingsModal({
   };
 
   return createPortal(
-    <div className="fixed inset-0 w-full h-full bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-md shadow-xl">
-        <div className="flex items-center justify-between p-6 border-b dark:border-gray-700">
+    <div className="modal-overlay">
+      <div className="modal-panel max-w-md">
+        <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-white/[0.07]">
           <div className="flex items-center space-x-2">
             <Bell className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+            <h2 className="text-lg font-semibold tracking-tight text-gray-900 dark:text-white">
               Notification Settings
             </h2>
           </div>
           <button
             onClick={onClose}
-            className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+            className="icon-btn"
           >
             <X className="h-5 w-5" />
           </button>
@@ -78,7 +78,7 @@ export function NotificationSettingsModal({
           {/* Enable/Disable Toggle */}
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-lg font-medium text-gray-900 dark:text-white">
+              <h3 className="text-base font-semibold tracking-tight text-gray-900 dark:text-white">
                 Enable Notifications
               </h3>
               <p className="text-sm text-gray-500 dark:text-gray-400">
@@ -105,7 +105,7 @@ export function NotificationSettingsModal({
             <>
               {/* Days Selection */}
               <div>
-                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-3">
+                <h3 className="text-base font-semibold tracking-tight text-gray-900 dark:text-white mb-3">
                   Reminder Days
                 </h3>
                 <div className="grid grid-cols-2 gap-2">
@@ -113,10 +113,10 @@ export function NotificationSettingsModal({
                     <button
                       key={day.id}
                       onClick={() => handleDayToggle(day.id)}
-                      className={`p-3 rounded-lg text-sm font-medium transition-colors ${
+                      className={`p-3 rounded-xl text-sm font-medium transition-colors ${
                         selectedDays.includes(day.id)
-                          ? 'bg-indigo-600 text-white'
-                          : 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-600'
+                          ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-600/20'
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700'
                       }`}
                     >
                       {day.label}
@@ -130,14 +130,14 @@ export function NotificationSettingsModal({
 
               {/* Time Selection */}
               <div>
-                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-3">
+                <h3 className="text-base font-semibold tracking-tight text-gray-900 dark:text-white mb-3">
                   Reminder Time
                 </h3>
                 <input
                   type="time"
                   value={time}
                   onChange={(e) => setTime(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                  className="input"
                 />
                 <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
                   Choose when you want to receive daily workout reminders
@@ -147,16 +147,16 @@ export function NotificationSettingsModal({
           )}
         </div>
 
-        <div className="flex justify-end space-x-3 p-6 border-t dark:border-gray-700">
+        <div className="flex justify-end space-x-3 p-6 border-t border-gray-100 dark:border-white/[0.07]">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-md"
+            className="btn-ghost"
           >
             Cancel
           </button>
           <button
             onClick={handleSave}
-            className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md"
+            className="btn-primary"
           >
             Save Settings
           </button>

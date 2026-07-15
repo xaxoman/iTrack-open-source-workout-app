@@ -2,6 +2,7 @@ import type {
   Workout,
   WorkoutTemplate,
   EquipmentItem,
+  WeightEntry,
 } from '../types/workout';
 import type { UserProfile } from '../store/useWorkoutStore';
 
@@ -20,6 +21,8 @@ export interface CoachContext {
   templates: WorkoutTemplate[];
   /** Most recent completed sessions, newest first. */
   recentWorkouts: Workout[];
+  /** Body-weight log, oldest first (optional — installs may not use it). */
+  weightLog?: WeightEntry[];
 }
 
 /** A workout the AI proposes, shaped so it can be saved as a template. */
@@ -118,7 +121,7 @@ async function callGemini(
 
 /** Human-readable snapshot of everything the coach reasons over. */
 function buildContextBlock(ctx: CoachContext): string {
-  const { profile, equipment, exerciseWeights, templates, recentWorkouts } = ctx;
+  const { profile, equipment, exerciseWeights, templates, recentWorkouts, weightLog } = ctx;
 
   const profileText = profile
     ? [
@@ -182,6 +185,29 @@ function buildContextBlock(ctx: CoachContext): string {
         .join('\n')
     : '- No completed workouts logged yet.';
 
+  // Per-routine records: best and latest completion, so the coach can judge
+  // progression readiness per plan rather than only from raw history.
+  const recordsText = templates.length
+    ? templates
+        .map((t) => {
+          const history = recentWorkouts.filter((w) => w.name === t.name);
+          if (!history.length) return `- "${t.name}": not attempted yet`;
+          const best = Math.max(...history.map((w) => w.completionPercentage));
+          const latest = history[0];
+          return `- "${t.name}": record ${Math.round(best)}%, latest ${Math.round(
+            latest.completionPercentage
+          )}%`;
+        })
+        .join('\n')
+    : '- No saved routines.';
+
+  const weightTrendText = weightLog?.length
+    ? weightLog
+        .slice(-12)
+        .map((e) => `- ${new Date(e.date).toLocaleDateString()}: ${e.weightKg} kg`)
+        .join('\n')
+    : '- No body-weight log yet.';
+
   return `## Personal profile
 ${profileText}
 
@@ -194,8 +220,14 @@ ${weightsText}
 ## Saved workout templates
 ${templatesText}
 
+## Routine records (best vs latest completion)
+${recordsText}
+
 ## Recent sessions (newest first)
-${historyText}`;
+${historyText}
+
+## Body-weight log (oldest first)
+${weightTrendText}`;
 }
 
 /**

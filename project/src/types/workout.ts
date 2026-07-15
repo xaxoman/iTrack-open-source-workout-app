@@ -40,3 +40,10 @@ export interface EquipmentItem {
   maxWeight?: number; // kg — heaviest available for weighted equipment
   notes?: string;
 }
+/** A single body-weight measurement, one per calendar day. */
+export interface WeightEntry {
+  id: string;
+  /** ISO date string of the measurement. */
+  date: string;
+  weightKg: number;
+}

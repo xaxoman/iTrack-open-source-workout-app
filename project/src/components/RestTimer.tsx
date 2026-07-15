@@ -53,38 +53,41 @@ export function RestTimer({ onComplete }: RestTimerProps) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white dark:bg-gray-800 rounded-lg p-8 text-center w-[90%] max-w-md mx-auto">
-        <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
+    <div className="modal-overlay">
+      <div className="modal-panel max-w-md p-8 text-center">
+        <h3 className="text-lg font-semibold tracking-tight text-gray-900 dark:text-white mb-6">
           Rest Time
         </h3>
-        <div 
-          className={`text-4xl font-mono mb-8 transition-colors duration-300 ${
-            isWarning 
-              ? 'text-red-600 dark:text-red-400 animate-[shake_0.5s_ease-in-out_infinite]' 
+        <div
+          className={`text-6xl font-mono font-semibold tabular-nums tracking-tight mb-8 transition-colors duration-300 ${
+            isWarning
+              ? 'text-red-600 dark:text-red-400 animate-[shake_0.5s_ease-in-out_infinite]'
               : 'text-indigo-600 dark:text-indigo-400'
           }`}
         >
           {formatTime(timeLeft)}
         </div>
-        <div className="flex justify-center space-x-8">
+        <div className="flex justify-center gap-4">
           <button
             onClick={() => adjustTime(-10)}
-            className="p-3 text-gray-600 hover:text-indigo-600 dark:text-gray-400 dark:hover:text-indigo-400 active:scale-95 transition-transform"
+            aria-label="Subtract 10 seconds"
+            className="flex h-14 w-14 items-center justify-center rounded-full bg-gray-100 text-gray-600 transition-all hover:bg-gray-200 hover:text-gray-900 active:scale-95 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white"
           >
-            <Rewind className="h-8 w-8" />
+            <Rewind className="h-6 w-6" />
           </button>
           <button
             onClick={handleSkip}
-            className="p-3 text-gray-600 hover:text-indigo-600 dark:text-gray-400 dark:hover:text-indigo-400 active:scale-95 transition-transform"
+            aria-label="Skip rest"
+            className="flex h-14 w-14 items-center justify-center rounded-full bg-indigo-600 text-white shadow-sm shadow-indigo-600/30 transition-all hover:bg-indigo-500 active:scale-95"
           >
-            <SkipForward className="h-8 w-8" />
+            <SkipForward className="h-6 w-6" />
           </button>
           <button
             onClick={() => adjustTime(10)}
-            className="p-3 text-gray-600 hover:text-indigo-600 dark:text-gray-400 dark:hover:text-indigo-400 active:scale-95 transition-transform"
+            aria-label="Add 10 seconds"
+            className="flex h-14 w-14 items-center justify-center rounded-full bg-gray-100 text-gray-600 transition-all hover:bg-gray-200 hover:text-gray-900 active:scale-95 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white"
           >
-            <FastForward className="h-8 w-8" />
+            <FastForward className="h-6 w-6" />
           </button>
         </div>
       </div>

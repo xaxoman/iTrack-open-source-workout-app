@@ -101,18 +101,18 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
   };
 
   return createPortal(
-    <div className="fixed inset-0 w-full h-full bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-md shadow-xl flex flex-col">
-        <div className="flex items-center justify-between p-6 border-b dark:border-gray-700">
+    <div className="modal-overlay">
+      <div className="modal-panel max-w-md flex flex-col">
+        <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-white/[0.07]">
           <div className="flex items-center space-x-2">
             <Cloud className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+            <h2 className="text-lg font-semibold tracking-tight text-gray-900 dark:text-white">
               {user ? 'Account' : 'Cloud Sync'}
             </h2>
           </div>
           <button
             onClick={onClose}
-            className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+            className="icon-btn"
             aria-label="Close"
           >
             <X className="h-5 w-5" />
@@ -121,7 +121,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
 
         <div className="p-6 space-y-5">
           {!isSupabaseConfigured ? (
-            <div className="flex items-start space-x-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 p-4">
+            <div className="flex items-start space-x-3 rounded-xl border border-amber-200/70 bg-amber-50 p-4 dark:border-amber-400/20 dark:bg-amber-500/10">
               <CloudOff className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
               <div className="text-sm text-amber-800 dark:text-amber-300">
                 <p className="font-medium">Cloud sync isn't set up for this build.</p>
@@ -136,7 +136,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
             /* ---------- Signed-in account view ---------- */
             <div className="space-y-5">
               <div className="flex items-center space-x-3">
-                <CheckCircle2 className="h-6 w-6 text-green-600 dark:text-green-400" />
+                <CheckCircle2 className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
                 <div className="min-w-0">
                   <p className="text-sm text-gray-500 dark:text-gray-400">Signed in as</p>
                   <p className="font-medium text-gray-900 dark:text-white truncate">
@@ -145,7 +145,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
                 </div>
               </div>
 
-              <div className="rounded-lg bg-gray-50 dark:bg-gray-700/50 p-4">
+              <div className="rounded-xl bg-gray-50 dark:bg-gray-800/60 p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-2">
                     {storageMode === 'supabase' ? (
@@ -161,7 +161,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
                     onClick={() =>
                       setStorageMode(storageMode === 'supabase' ? 'local' : 'supabase')
                     }
-                    className="text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300"
+                    className="link"
                   >
                     {storageMode === 'supabase' ? 'Switch to local' : 'Use cloud'}
                   </button>
@@ -170,7 +170,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
                   <button
                     onClick={handleSyncNow}
                     disabled={syncing}
-                    className="mt-3 flex w-full items-center justify-center space-x-2 rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-60"
+                    className="btn-secondary mt-3 w-full py-2"
                   >
                     <RefreshCw className={`h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />
                     <span>{syncing ? 'Syncing…' : 'Sync now'}</span>
@@ -183,7 +183,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
               <button
                 onClick={handleSignOut}
                 disabled={loading}
-                className="flex w-full items-center justify-center space-x-2 rounded-md bg-red-50 dark:bg-red-900/20 px-4 py-2 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40 disabled:opacity-60"
+                className="flex w-full items-center justify-center space-x-2 rounded-xl bg-red-50 px-4 py-2.5 text-sm font-medium text-red-600 transition-colors hover:bg-red-100 disabled:pointer-events-none disabled:opacity-50 dark:bg-red-500/10 dark:text-red-400 dark:hover:bg-red-500/20"
               >
                 <LogOut className="h-4 w-4" />
                 <span>Sign out</span>
@@ -192,7 +192,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
           ) : (
             /* ---------- Sign in / sign up form ---------- */
             <form onSubmit={handleSubmit} className="space-y-5">
-              <div className="grid grid-cols-2 gap-2 rounded-lg bg-gray-100 dark:bg-gray-700/50 p-1">
+              <div className="grid grid-cols-2 gap-1 rounded-xl bg-gray-100 dark:bg-gray-800 p-1">
                 <TabButton active={mode === 'signin'} onClick={() => setMode('signin')}>
                   Sign In
                 </TabButton>
@@ -208,7 +208,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
               </p>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <label className="label">
                   Email
                 </label>
                 <div className="relative">
@@ -220,13 +220,13 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="you@example.com"
                     autoComplete="email"
-                    className="w-full pl-9 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white placeholder-gray-400"
+                    className="input pl-9"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <label className="label">
                   Password
                 </label>
                 <div className="relative">
@@ -239,7 +239,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="At least 6 characters"
                     autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
-                    className="w-full pl-9 pr-10 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white placeholder-gray-400"
+                    className="input pl-9 pr-10"
                   />
                   <button
                     type="button"
@@ -259,14 +259,14 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
               </div>
 
               {info && (
-                <p className="text-sm text-green-600 dark:text-green-400">{info}</p>
+                <p className="text-sm text-emerald-600 dark:text-emerald-400">{info}</p>
               )}
               {error && <ErrorText message={error} />}
 
               <button
                 type="submit"
                 disabled={loading}
-                className="flex w-full items-center justify-center space-x-2 rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-60"
+                className="btn-primary w-full space-x-2"
               >
                 {loading ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -299,10 +299,10 @@ function TabButton({
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-md py-2 text-sm font-medium transition-colors ${
+      className={`rounded-lg py-2 text-sm font-medium transition-colors ${
         active
-          ? 'bg-white dark:bg-gray-800 text-indigo-600 dark:text-indigo-400 shadow-sm'
-          : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
+          ? 'bg-white dark:bg-gray-900 text-indigo-600 dark:text-indigo-300 shadow-sm'
+          : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
       }`}
     >
       {children}

@@ -30,6 +30,7 @@ export function Settings() {
     updateNotificationSettings,
     userProfile,
     updateUserProfile,
+    weightLog,
     workouts,
     templates,
     importData,
@@ -92,6 +93,7 @@ export function Settings() {
       workouts,
       templates,
       userProfile,
+      weightLog,
       notificationSettings,
       darkMode
     };
@@ -150,10 +152,10 @@ export function Settings() {
 
   return (
     <div className="space-y-8">
-      <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Settings</h1>
+      <h1 className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-white">Settings</h1>
 
       {/* Data Storage */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm">
+      <div className="card">
         <div className="p-6">
           <div className="flex items-center space-x-3 mb-1">
             {storageMode === 'supabase' ? (
@@ -162,7 +164,7 @@ export function Settings() {
               <HardDrive className="h-5 w-5 text-gray-600 dark:text-gray-400" />
             )}
             <div>
-              <h3 className="text-lg font-medium text-gray-900 dark:text-white">
+              <h3 className="text-base font-semibold tracking-tight text-gray-900 dark:text-white">
                 Data Storage
               </h3>
               <p className="text-sm text-gray-500 dark:text-gray-400">
@@ -194,7 +196,7 @@ export function Settings() {
                 <button
                   onClick={() => syncNow()}
                   disabled={syncing}
-                  className="flex items-center space-x-2 text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 disabled:opacity-60"
+                  className="link flex items-center space-x-2 disabled:opacity-60"
                 >
                   <RefreshCw className={`h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />
                   <span>{syncing ? 'Syncing…' : 'Sync now'}</span>
@@ -202,14 +204,14 @@ export function Settings() {
               ) : (
                 <button
                   onClick={() => setIsAuthModalOpen(true)}
-                  className="text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300"
+                  className="link"
                 >
                   Sign in to sync
                 </button>
               )}
               <button
                 onClick={() => setIsAuthModalOpen(true)}
-                className="text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
+                className="text-sm font-medium text-gray-600 transition-colors hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
               >
                 Manage account
               </button>
@@ -219,11 +221,11 @@ export function Settings() {
       </div>
 
       {/* AI Coach */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 space-y-4">
+      <div className="card p-6 space-y-4">
         <div className="flex items-center space-x-3">
           <Sparkles className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
           <div>
-            <h3 className="text-lg font-medium text-gray-900 dark:text-white">AI Coach</h3>
+            <h3 className="text-base font-semibold tracking-tight text-gray-900 dark:text-white">AI Coach</h3>
             <p className="text-sm text-gray-500 dark:text-gray-400">
               Gemini API key & model (stored only on this device)
             </p>
@@ -231,7 +233,7 @@ export function Settings() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          <label className="label">
             Gemini API key
           </label>
           <input
@@ -240,7 +242,7 @@ export function Settings() {
             onChange={(e) => setApiKeyInput(e.target.value)}
             placeholder="AIza..."
             autoComplete="off"
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white placeholder-gray-400"
+            className="input"
           />
           <p className="mt-1 text-xs text-gray-400">
             Get a free key at{' '}
@@ -256,7 +258,7 @@ export function Settings() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          <label className="label">
             Model
           </label>
           <input
@@ -264,7 +266,7 @@ export function Settings() {
             value={modelInput}
             onChange={(e) => setModelInput(e.target.value)}
             placeholder="gemini-3.5-flash"
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white placeholder-gray-400"
+            className="input"
           />
           <p className="mt-1 text-xs text-gray-400">
             Free tier: <code>gemini-3.5-flash</code> or <code>gemini-flash-latest</code>. Pro
@@ -273,13 +275,13 @@ export function Settings() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          <label className="label">
             Reasoning
           </label>
           <select
             value={reasoningInput}
             onChange={(e) => setReasoningInput(e.target.value as 'low' | 'high')}
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white"
+            className="input"
           >
             <option value="high">High — deeper analysis (slower)</option>
             <option value="low">Low — faster, cheaper</option>
@@ -292,7 +294,7 @@ export function Settings() {
         <div className="flex items-center justify-between">
           <button
             onClick={() => setIsCoachOnboardingOpen(true)}
-            className="flex items-center gap-1.5 text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
+            className="flex items-center gap-1.5 text-sm font-medium text-gray-600 transition-colors hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
           >
             <Dumbbell className="h-4 w-4" />
             {aiOnboarded ? 'Edit equipment & weights' : 'Set up equipment & weights'}
@@ -305,20 +307,20 @@ export function Settings() {
                 thinkingLevel: reasoningInput,
               });
             }}
-            className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md"
+            className="btn-primary"
           >
             Save
           </button>
         </div>
       </div>
 
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm divide-y dark:divide-gray-700">
+      <div className="card divide-y divide-gray-100 dark:divide-white/[0.06]">
         <div className="p-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <Moon className="h-5 w-5 text-gray-600 dark:text-gray-400" />
               <div>
-                <h3 className="text-lg font-medium text-gray-900 dark:text-white">
+                <h3 className="text-base font-semibold tracking-tight text-gray-900 dark:text-white">
                   Dark Mode
                 </h3>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
@@ -328,16 +330,14 @@ export function Settings() {
             </div>
             <button
               onClick={toggleDarkMode}
-              className="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:ring-offset-2"
-              style={{
-                backgroundColor: darkMode ? '#4f46e5' : '#e5e7eb',
-              }}
+              className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-950 ${
+                darkMode ? 'bg-indigo-600' : 'bg-gray-200'
+              }`}
             >
               <span
-                className="translate-x-0 pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
-                style={{
-                  transform: `translateX(${darkMode ? '20px' : '0'})`,
-                }}
+                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                  darkMode ? 'translate-x-5' : 'translate-x-0'
+                }`}
               />
             </button>
           </div>
@@ -348,7 +348,7 @@ export function Settings() {
             <div className="flex items-center space-x-3">
               <Bell className="h-5 w-5 text-gray-600 dark:text-gray-400" />
               <div>
-                <h3 className="text-lg font-medium text-gray-900 dark:text-white">
+                <h3 className="text-base font-semibold tracking-tight text-gray-900 dark:text-white">
                   Notifications
                 </h3>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
@@ -358,7 +358,7 @@ export function Settings() {
             </div>
             <button 
               onClick={() => setIsNotificationModalOpen(true)}
-              className="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300"
+              className="link"
             >
               Configure
             </button>
@@ -370,7 +370,7 @@ export function Settings() {
             <div className="flex items-center space-x-3">
               <User className="h-5 w-5 text-gray-600 dark:text-gray-400" />
               <div>
-                <h3 className="text-lg font-medium text-gray-900 dark:text-white">
+                <h3 className="text-base font-semibold tracking-tight text-gray-900 dark:text-white">
                   Profile
                 </h3>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
@@ -380,7 +380,7 @@ export function Settings() {
             </div>
             <button 
               onClick={() => setIsProfileModalOpen(true)}
-              className="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300"
+              className="link"
             >
               {userProfile ? 'Edit' : 'Setup'}
             </button>
@@ -392,7 +392,7 @@ export function Settings() {
             <div className="flex items-center space-x-3">
               <Database className="h-5 w-5 text-gray-600 dark:text-gray-400" />
               <div>
-                <h3 className="text-lg font-medium text-gray-900 dark:text-white">
+                <h3 className="text-base font-semibold tracking-tight text-gray-900 dark:text-white">
                   Backup &amp; Data
                 </h3>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
@@ -405,7 +405,7 @@ export function Settings() {
                 onClick={() => setIsDataMenuOpen((open) => !open)}
                 aria-haspopup="true"
                 aria-expanded={isDataMenuOpen}
-                className="flex items-center space-x-1 text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300"
+                className="link flex items-center space-x-1"
               >
                 <span>Manage</span>
                 <ChevronDown
@@ -422,13 +422,13 @@ export function Settings() {
                     className="fixed inset-0 z-10"
                     onClick={() => setIsDataMenuOpen(false)}
                   />
-                  <div className="absolute right-0 bottom-full mb-2 w-56 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg z-20 overflow-hidden">
+                  <div className="absolute right-0 bottom-full mb-2 w-56 rounded-xl border border-gray-200/70 bg-white shadow-xl shadow-gray-950/10 dark:border-white/10 dark:bg-gray-900 z-20 overflow-hidden">
                     <button
                       onClick={() => {
                         handleExport();
                         setIsDataMenuOpen(false);
                       }}
-                      className="flex w-full items-center space-x-3 px-4 py-3 text-left hover:bg-gray-100 dark:hover:bg-gray-700"
+                      className="flex w-full items-center space-x-3 px-4 py-3 text-left transition-colors hover:bg-gray-50 dark:hover:bg-gray-800"
                     >
                       <Download className="h-4 w-4 text-gray-500 dark:text-gray-400 flex-shrink-0" />
                       <div>
@@ -441,7 +441,7 @@ export function Settings() {
                       </div>
                     </button>
 
-                    <label className="flex w-full cursor-pointer items-center space-x-3 px-4 py-3 text-left hover:bg-gray-100 dark:hover:bg-gray-700 border-t border-gray-100 dark:border-gray-700">
+                    <label className="flex w-full cursor-pointer items-center space-x-3 px-4 py-3 text-left transition-colors hover:bg-gray-50 dark:hover:bg-gray-800 border-t border-gray-100 dark:border-white/[0.06]">
                       <Upload className="h-4 w-4 text-gray-500 dark:text-gray-400 flex-shrink-0" />
                       <div>
                         <p className="text-sm font-medium text-gray-900 dark:text-white">
@@ -513,10 +513,10 @@ function StorageOption({
   return (
     <button
       onClick={onClick}
-      className={`text-left rounded-lg border-2 p-4 transition-colors ${
+      className={`text-left rounded-xl border p-4 transition-colors ${
         active
-          ? 'border-indigo-600 bg-indigo-50 dark:border-indigo-400 dark:bg-indigo-900/20'
-          : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+          ? 'border-indigo-500 bg-indigo-50/70 ring-1 ring-indigo-500 dark:border-indigo-400/60 dark:bg-indigo-500/10 dark:ring-indigo-400/60'
+          : 'border-gray-200 hover:border-gray-300 dark:border-white/[0.08] dark:hover:border-white/[0.16]'
       }`}
     >
       <div className="flex items-center space-x-2">

@@ -128,18 +128,18 @@ export function UserProfileModal({
   const isValid = Boolean(hasCoreInputs);
 
   return createPortal(
-    <div className="fixed inset-0 w-full h-full bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-lg max-h-[90vh] shadow-xl flex flex-col">
-        <div className="flex items-center justify-between p-6 border-b dark:border-gray-700">
+    <div className="modal-overlay">
+      <div className="modal-panel max-w-lg max-h-[90vh] flex flex-col">
+        <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-white/[0.07]">
           <div className="flex items-center space-x-2">
             <User className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+            <h2 className="text-lg font-semibold tracking-tight text-gray-900 dark:text-white">
               Profile Information
             </h2>
           </div>
           <button
             onClick={onClose}
-            className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+            className="icon-btn"
           >
             <X className="h-5 w-5" />
           </button>
@@ -148,7 +148,7 @@ export function UserProfileModal({
         <div className="p-6 space-y-6 overflow-y-auto">
           {/* Height Input */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="label">
               Height (cm)
             </label>
             <input
@@ -158,7 +158,7 @@ export function UserProfileModal({
               placeholder="Enter your height in centimeters"
               min="100"
               max="250"
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white placeholder-gray-400"
+              className="input"
             />
             <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
               Example: 175 cm
@@ -167,7 +167,7 @@ export function UserProfileModal({
 
           {/* Weight Input */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label className="label">
               Weight (kg)
             </label>
             <input
@@ -178,7 +178,7 @@ export function UserProfileModal({
               min="30"
               max="200"
               step="0.1"
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white placeholder-gray-400"
+              className="input"
             />
             <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
               Example: 70.5 kg
@@ -187,13 +187,13 @@ export function UserProfileModal({
 
           <div className="grid sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="label">
                 Gender
               </label>
               <select
                 value={gender}
                 onChange={(e) => setGender(e.target.value as UserProfile['gender'])}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                className="input"
               >
                 <option value="">Select gender</option>
                 <option value="MALE">Male</option>
@@ -202,7 +202,7 @@ export function UserProfileModal({
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="label">
                 Age
               </label>
               <input
@@ -212,14 +212,14 @@ export function UserProfileModal({
                 placeholder="Enter your age"
                 min="10"
                 max="120"
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white placeholder-gray-400"
+                className="input"
               />
             </div>
           </div>
 
           <div className="grid sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="label">
                 Neck (cm)
               </label>
               <input
@@ -230,7 +230,7 @@ export function UserProfileModal({
                 min="20"
                 max="80"
                 step="0.1"
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white placeholder-gray-400"
+                className="input"
               />
               <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                 Optional. Helps refine body fat estimation.
@@ -238,7 +238,7 @@ export function UserProfileModal({
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="label">
                 Waist (cm)
               </label>
               <input
@@ -249,7 +249,7 @@ export function UserProfileModal({
                 min="40"
                 max="200"
                 step="0.1"
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white placeholder-gray-400"
+                className="input"
               />
               <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                 Optional. Enables body fat percentage estimation.
@@ -259,7 +259,7 @@ export function UserProfileModal({
 
           {/* BMI Calculation Display */}
           {currentBMI && (
-            <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+            <div className="rounded-xl bg-gray-50 dark:bg-gray-800/60 p-4">
               <div className="flex items-center space-x-2 mb-2">
                 <Calculator className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
                 <h3 className="text-sm font-medium text-gray-900 dark:text-white">
@@ -298,7 +298,7 @@ export function UserProfileModal({
               </div>
               
               {/* BMI Scale Reference */}
-              <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-600">
+              <div className="mt-4 pt-4 border-t border-gray-200 dark:border-white/[0.08]">
                 <h4 className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">
                   BMI Categories:
                 </h4>
@@ -325,21 +325,18 @@ export function UserProfileModal({
           )}
         </div>
 
-        <div className="flex justify-end space-x-3 p-6 border-t dark:border-gray-700">
+        <div className="flex justify-end space-x-3 p-6 border-t border-gray-100 dark:border-white/[0.07]">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-md"
+            className="btn-ghost"
           >
             Cancel
           </button>
           <button
             onClick={handleSave}
             disabled={!isValid}
-            className={`px-4 py-2 text-sm font-medium text-white rounded-md ${
-              isValid 
-                ? 'bg-indigo-600 hover:bg-indigo-700' 
-                : 'bg-gray-400 cursor-not-allowed'
-            }`}
+            className="btn-primary"
+            
           >
             Save Profile
           </button>

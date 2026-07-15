@@ -72,6 +72,7 @@ export function Coach() {
     exerciseWeights,
     templates,
     workouts,
+    weightLog,
     aiCoach,
     aiOnboarded,
     setAICoachConfig,
@@ -101,8 +102,9 @@ export function Coach() {
       recentWorkouts: [...workouts].sort(
         (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
       ),
+      weightLog,
     }),
-    [userProfile, equipment, exerciseWeights, templates, workouts]
+    [userProfile, equipment, exerciseWeights, templates, workouts, weightLog]
   );
 
   const runAnalyze = async () => {
@@ -154,10 +156,10 @@ export function Coach() {
     return (
       <div className="space-y-6">
         <Header />
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 space-y-4">
+        <div className="card p-6 space-y-4">
           <div className="flex items-center space-x-3">
             <KeyRound className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
-            <h2 className="text-lg font-medium text-gray-900 dark:text-white">Connect Gemini</h2>
+            <h2 className="text-lg font-semibold tracking-tight text-gray-900 dark:text-white">Connect Gemini</h2>
           </div>
           <p className="text-sm text-gray-500 dark:text-gray-400">
             The AI Coach uses Google Gemini. Paste your own API key — it's stored only on this device.
@@ -178,7 +180,7 @@ export function Coach() {
               value={keyInput}
               onChange={(e) => setKeyInput(e.target.value)}
               placeholder="AIza..."
-              className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white placeholder-gray-400"
+              className="input flex-1"
             />
             <button
               onClick={() => {
@@ -187,7 +189,7 @@ export function Coach() {
                 toast.success('Gemini key saved');
               }}
               disabled={!keyInput.trim()}
-              className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md disabled:opacity-60"
+              className="btn-primary"
             >
               Save key
             </button>
@@ -205,7 +207,7 @@ export function Coach() {
       <Header />
 
       {/* Equipment / weights status */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4 flex items-center justify-between">
+      <div className="card p-4 flex items-center justify-between">
         <div className="flex items-center space-x-3">
           <Dumbbell className="h-5 w-5 text-gray-600 dark:text-gray-400" />
           <div>
@@ -221,16 +223,16 @@ export function Coach() {
         </div>
         <button
           onClick={() => setOnboardingOpen(true)}
-          className="text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300"
+          className="link"
         >
           {aiOnboarded ? 'Edit' : 'Set up'}
         </button>
       </div>
 
       {/* Analyze */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 space-y-4">
+      <div className="card p-6 space-y-4">
         {!aiOnboarded && (
-          <div className="rounded-lg bg-amber-50 dark:bg-amber-900/20 p-3 text-sm text-amber-800 dark:text-amber-300">
+          <div className="rounded-xl border border-amber-200/70 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-400/20 dark:bg-amber-500/10 dark:text-amber-300">
             Tip: set up your equipment and current weights first so suggestions are realistic.
           </div>
         )}
@@ -238,7 +240,7 @@ export function Coach() {
         <button
           onClick={runAnalyze}
           disabled={analyzing}
-          className="flex w-full items-center justify-center space-x-2 rounded-lg bg-indigo-600 px-4 py-3 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-60"
+          className="btn-primary w-full py-3"
         >
           {analyzing ? <Loader2 className="h-5 w-5 animate-spin" /> : <Sparkles className="h-5 w-5" />}
           <span>{analyzing ? 'Analyzing your training…' : 'Analyze my training'}</span>
@@ -247,7 +249,7 @@ export function Coach() {
         {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
 
         {analysis && (
-          <div className="rounded-lg bg-gray-50 dark:bg-gray-700/40 p-4 space-y-1 text-sm">
+          <div className="rounded-xl bg-gray-50 dark:bg-gray-800/60 p-4 space-y-1 text-sm">
             {renderMarkdown(analysis)}
           </div>
         )}
@@ -282,7 +284,7 @@ export function Coach() {
             {!showCustom ? (
               <button
                 onClick={() => setShowCustom(true)}
-                className="flex items-center gap-1 text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300"
+                className="link flex items-center gap-1"
               >
                 <Wand2 className="h-4 w-4" /> Something custom…
               </button>
@@ -292,12 +294,12 @@ export function Coach() {
                   value={customText}
                   onChange={(e) => setCustomText(e.target.value)}
                   placeholder="e.g. focus on upper body, 30 min max, no jumping"
-                  className="flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white placeholder-gray-400"
+                  className="input flex-1"
                 />
                 <button
                   onClick={() => runGenerate('custom', customText.trim())}
                   disabled={!customText.trim() || generating === 'custom'}
-                  className="flex items-center justify-center gap-1 px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md disabled:opacity-60"
+                  className="btn-primary"
                 >
                   {generating === 'custom' ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -314,10 +316,10 @@ export function Coach() {
 
       {/* Generated workout */}
       {generated && (
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 space-y-4">
+        <div className="card p-6 space-y-4">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{generated.name}</h3>
+              <h3 className="text-lg font-semibold tracking-tight text-gray-900 dark:text-white">{generated.name}</h3>
               <p className="text-sm text-gray-500 dark:text-gray-400">{generated.summary}</p>
             </div>
             {lastDirection && (
@@ -325,7 +327,7 @@ export function Coach() {
                 onClick={() => runGenerate(lastDirection, customText.trim() || undefined)}
                 disabled={generating !== null}
                 title="Regenerate"
-                className="flex-shrink-0 p-2 text-gray-500 hover:text-indigo-600 dark:text-gray-400 dark:hover:text-indigo-400"
+                className="icon-btn flex-shrink-0"
               >
                 <RefreshCw className={`h-4 w-4 ${generating ? 'animate-spin' : ''}`} />
               </button>
@@ -361,7 +363,7 @@ export function Coach() {
           <button
             onClick={handleSaveTemplate}
             disabled={saved}
-            className="flex w-full items-center justify-center gap-2 rounded-lg bg-green-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-60"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm shadow-emerald-600/20 transition-colors hover:bg-emerald-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 dark:focus-visible:ring-offset-gray-950"
           >
             <Save className="h-4 w-4" />
             {saved ? 'Saved to templates' : 'Save as template'}
@@ -377,9 +379,9 @@ export function Coach() {
 function Header() {
   return (
     <div className="flex items-center space-x-3">
-      <Sparkles className="h-7 w-7 text-indigo-600 dark:text-indigo-400" />
+      <span className="icon-chip h-11 w-11 rounded-2xl"><Sparkles className="h-5 w-5" /></span>
       <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">AI Coach</h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-white">AI Coach</h1>
         <p className="text-sm text-gray-500 dark:text-gray-400">
           Personalized analysis and workouts powered by Gemini.
         </p>
@@ -403,7 +405,7 @@ function DirectionButton({
     <button
       onClick={onClick}
       disabled={busy}
-      className="flex items-center justify-center gap-2 rounded-lg border-2 border-gray-200 dark:border-gray-700 px-3 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-200 hover:border-indigo-500 hover:text-indigo-600 dark:hover:text-indigo-400 disabled:opacity-60"
+      className="flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm font-medium text-gray-700 shadow-sm shadow-gray-950/[0.03] transition-colors hover:border-indigo-400 hover:text-indigo-600 disabled:pointer-events-none disabled:opacity-50 dark:border-white/10 dark:bg-gray-900 dark:text-gray-200 dark:shadow-none dark:hover:border-indigo-400/50 dark:hover:text-indigo-300"
     >
       {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : icon}
       {label}

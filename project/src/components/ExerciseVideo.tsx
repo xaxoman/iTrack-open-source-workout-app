@@ -31,7 +31,7 @@ export function ExerciseVideo({ url }: ExerciseVideoProps) {
 
   if (isImageOrGif(url)) {
     return (
-      <div className="aspect-video rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700 flex justify-center items-center">
+      <div className="aspect-video rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-800 flex justify-center items-center">
         <img src={url} alt="Exercise demonstration" className="w-full h-full object-contain" />
       </div>
     );
@@ -39,7 +39,7 @@ export function ExerciseVideo({ url }: ExerciseVideoProps) {
 
   if (videoId) {
     return (
-      <div className="aspect-video rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700">
+      <div className="aspect-video rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-800">
         <iframe
           className="w-full h-full"
           src={`https://www.youtube.com/embed/${videoId}?${youtubeEmbedParams}`}
@@ -54,7 +54,7 @@ export function ExerciseVideo({ url }: ExerciseVideoProps) {
 
   // For non-YouTube URLs, still show an iframe
   return (
-    <div className="aspect-video rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700">
+    <div className="aspect-video rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-800">
       <iframe
         className="w-full h-full"
         src={url}

@@ -1,9 +1,17 @@
-import { useMemo } from 'react';
-import { LineChart as LineChartIcon, Calendar, TrendingUp, Activity } from 'lucide-react';
+import { useMemo, useState, type ReactNode, type CSSProperties } from 'react';
+import { LineChart as LineChartIcon, Calendar, TrendingUp, Activity, Scale, Plus, ClipboardList, Clock } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useWorkoutStore } from '../store/useWorkoutStore';
+import { LogWeightModal } from '../components/LogWeightModal';
 import type { Workout } from '../types/workout';
 import { formatTime } from '../utils/formatTime';
+
+interface ChartTheme {
+  gridColor: string;
+  tickColor: string;
+  tooltipStyle: CSSProperties;
+  darkMode: boolean;
+}
 
 interface CompletionTrendPoint {
   label: string;
@@ -36,7 +44,21 @@ function buildCompletionTrendData(
 }
 
 export function Progress() {
-  const { workouts } = useWorkoutStore();
+  const { workouts, darkMode } = useWorkoutStore();
+
+  // Chart theme (single measure — same hue in both charts, tuned per surface)
+  const lineColor = darkMode ? '#6366f1' : '#4f46e5';
+  const gridColor = darkMode ? 'rgba(255,255,255,0.08)' : '#e5e7eb';
+  const tickColor = darkMode ? '#9ca3af' : '#6b7280';
+  const tooltipStyle: CSSProperties = {
+    backgroundColor: darkMode ? '#111827' : '#ffffff',
+    border: darkMode ? '1px solid rgba(255,255,255,0.1)' : '1px solid #e5e7eb',
+    borderRadius: '12px',
+    boxShadow: '0 8px 24px rgba(3,7,18,0.12)',
+    color: darkMode ? '#f9fafb' : '#111827',
+    fontSize: '12px',
+  };
+  const chartTheme: ChartTheme = { gridColor, tickColor, tooltipStyle, darkMode };
 
   // Calculate real statistics from workout data
   const stats = useMemo(() => {
@@ -190,15 +212,20 @@ export function Progress() {
 
   if (workouts.length === 0) {
     return (
-      <div className="space-y-8">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Progress</h1>
-        
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-12 shadow-sm text-center">
-          <Activity className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+      <div className="space-y-6">
+        <h1 className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-white">Progress</h1>
+
+        <TrainingPlanCard />
+        <BodyWeightCard theme={chartTheme} />
+
+        <div className="card p-12 text-center">
+          <span className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gray-100 text-gray-400 dark:bg-gray-800 dark:text-gray-500">
+            <Activity className="h-7 w-7" />
+          </span>
+          <h2 className="text-lg font-semibold tracking-tight text-gray-900 dark:text-white mb-2">
             No Workout Data Yet
           </h2>
-          <p className="text-gray-600 dark:text-gray-400 max-w-md mx-auto">
+          <p className="text-sm text-gray-500 dark:text-gray-400 max-w-md mx-auto">
             Start completing workouts to see your progress statistics, trends, and achievements here.
           </p>
         </div>
@@ -207,90 +234,74 @@ export function Progress() {
   }
 
   return (
-    <div className="space-y-8">
-      <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Progress</h1>
+    <div className="space-y-6">
+      <h1 className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-white">Progress</h1>
 
       {/* Main Statistics Cards */}
-      <div className="grid md:grid-cols-3 gap-6">
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm">
-          <div className="flex items-center space-x-2 mb-4">
-            <Calendar className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-              This Month
-            </h2>
-          </div>
-          <p className="text-3xl font-bold text-gray-900 dark:text-white">
-            {stats.thisMonth}
-          </p>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            {stats.thisMonth === 1 ? 'Workout completed' : 'Workouts completed'}
-          </p>
-        </div>
-
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm">
-          <div className="flex items-center space-x-2 mb-4">
-            <TrendingUp className="h-5 w-5 text-green-600 dark:text-green-400" />
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-              Streak
-            </h2>
-          </div>
-          <p className="text-3xl font-bold text-gray-900 dark:text-white">{stats.streak}</p>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            {stats.streak === 1 ? 'Day in a row' : 'Days in a row'}
-          </p>
-        </div>
-
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm">
-          <div className="flex items-center space-x-2 mb-4">
-            <LineChartIcon className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-              Avg. Completion
-            </h2>
-          </div>
-          <p className="text-3xl font-bold text-gray-900 dark:text-white">
-            {Math.round(stats.averageCompletion)}%
-          </p>
-          <p className="text-sm text-gray-500 dark:text-gray-400">Average completion rate</p>
-        </div>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-6">
+        <StatCard
+          icon={<Calendar className="h-4 w-4" />}
+          title="This Month"
+          value={String(stats.thisMonth)}
+          caption={stats.thisMonth === 1 ? 'Workout completed' : 'Workouts completed'}
+        />
+        <StatCard
+          icon={<TrendingUp className="h-4 w-4" />}
+          title="Streak"
+          value={String(stats.streak)}
+          caption={stats.streak === 1 ? 'Day in a row' : 'Days in a row'}
+        />
+        <StatCard
+          icon={<LineChartIcon className="h-4 w-4" />}
+          title="Avg. Completion"
+          value={`${Math.round(stats.averageCompletion)}%`}
+          caption="Average completion rate"
+        />
       </div>
+
+      {/* Training plan overview */}
+      <TrainingPlanCard />
+
+      {/* Body weight */}
+      <BodyWeightCard theme={chartTheme} />
 
       {/* Secondary Statistics */}
       <div className="grid md:grid-cols-2 gap-6">
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+        <div className="card p-6">
+          <h3 className="text-lg font-semibold tracking-tight text-gray-900 dark:text-white mb-4">
             Quick Stats
           </h3>
-          <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <span className="text-gray-600 dark:text-gray-400">Total Workouts:</span>
+          <div className="divide-y divide-gray-100 dark:divide-white/[0.06]">
+            <div className="flex justify-between items-center py-2.5 first:pt-0 last:pb-0">
+              <span className="text-sm text-gray-500 dark:text-gray-400">Total Workouts</span>
               <span className="font-semibold text-gray-900 dark:text-white">{stats.totalWorkouts}</span>
             </div>
-            <div className="flex justify-between items-center">
-              <span className="text-gray-600 dark:text-gray-400">Average Duration:</span>
+            <div className="flex justify-between items-center py-2.5 first:pt-0 last:pb-0">
+              <span className="text-sm text-gray-500 dark:text-gray-400">Average Duration</span>
               <span className="font-semibold text-gray-900 dark:text-white">
                 {formatTime(stats.averageDuration)}
               </span>
             </div>
-            <div className="flex justify-between items-center">
-              <span className="text-gray-600 dark:text-gray-400">Most Active Day:</span>
+            <div className="flex justify-between items-center py-2.5 first:pt-0 last:pb-0">
+              <span className="text-sm text-gray-500 dark:text-gray-400">Most Active Day</span>
               <span className="font-semibold text-gray-900 dark:text-white">{stats.mostActiveDay}</span>
             </div>
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+        <div className="card p-6">
+          <h3 className="text-lg font-semibold tracking-tight text-gray-900 dark:text-white mb-4">
             Completion Rate Distribution
           </h3>
-          <div className="space-y-3">
+          <div className="divide-y divide-gray-100 dark:divide-white/[0.06]">
             {stats.completionData.map((item, index) => (
-              <div key={index} className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <div 
-                    className="w-4 h-4 rounded"
+              <div key={index} className="flex items-center justify-between py-2.5 first:pt-0 last:pb-0">
+                <div className="flex items-center gap-3">
+                  <span
+                    className="h-2.5 w-2.5 rounded-full"
                     style={{ backgroundColor: item.color }}
-                  ></div>
-                  <span className="text-gray-600 dark:text-gray-400">{item.range}</span>
+                  ></span>
+                  <span className="text-sm text-gray-500 dark:text-gray-400">{item.range}</span>
                 </div>
                 <span className="font-semibold text-gray-900 dark:text-white">
                   {item.count} {item.count === 1 ? 'workout' : 'workouts'}
@@ -303,8 +314,8 @@ export function Progress() {
 
       {/* Charts */}
       <div className="grid md:grid-cols-2 gap-6">
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">
+        <div className="card p-6">
+          <h2 className="text-lg font-semibold tracking-tight text-gray-900 dark:text-white mb-1">
             Weekly Completion Trend
           </h2>
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
@@ -313,19 +324,22 @@ export function Progress() {
           <div className="h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={stats.weeklyData}>
-                <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-                <XAxis 
-                  dataKey="label" 
-                  className="text-xs"
-                  tick={{ fill: 'currentColor' }}
+                <CartesianGrid vertical={false} stroke={gridColor} />
+                <XAxis
+                  dataKey="label"
+                  tick={{ fill: tickColor, fontSize: 12 }}
+                  axisLine={false}
+                  tickLine={false}
                 />
-                <YAxis 
+                <YAxis
                   domain={[0, 100]}
-                  className="text-xs"
+                  tick={{ fill: tickColor, fontSize: 12 }}
                   tickFormatter={(value) => `${value}%`}
-                  tick={{ fill: 'currentColor' }}
+                  axisLine={false}
+                  tickLine={false}
+                  width={40}
                 />
-                <Tooltip 
+                <Tooltip
                   formatter={(value: number) => [`${Math.round(value)}%`, 'Latest completion avg.']}
                   labelFormatter={(label, payload) => {
                     const point = payload?.[0]?.payload as CompletionTrendPoint | undefined;
@@ -340,27 +354,23 @@ export function Progress() {
 
                     return `${label} | ${point.trackedWorkouts} workout${point.trackedWorkouts === 1 ? '' : 's'} | ${trendText}`;
                   }}
-                  contentStyle={{
-                    backgroundColor: 'var(--tooltip-bg, #374151)',
-                    border: 'none',
-                    borderRadius: '8px',
-                    color: 'var(--tooltip-text, white)'
-                  }}
+                  contentStyle={tooltipStyle}
                 />
                 <Line
                   type="monotone"
                   dataKey="completion"
-                  stroke="#4f46e5"
-                  strokeWidth={3}
-                  dot={{ fill: '#4f46e5', strokeWidth: 2, r: 4 }}
+                  stroke={lineColor}
+                  strokeWidth={2}
+                  dot={{ fill: lineColor, strokeWidth: 0, r: 4 }}
+                  activeDot={{ r: 5, strokeWidth: 2, stroke: darkMode ? '#111827' : '#ffffff' }}
                 />
               </LineChart>
             </ResponsiveContainer>
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">
+        <div className="card p-6">
+          <h2 className="text-lg font-semibold tracking-tight text-gray-900 dark:text-white mb-1">
             Monthly Completion Trend
           </h2>
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
@@ -369,19 +379,22 @@ export function Progress() {
           <div className="h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={stats.monthlyData}>
-                <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-                <XAxis 
-                  dataKey="label" 
-                  className="text-xs"
-                  tick={{ fill: 'currentColor' }}
+                <CartesianGrid vertical={false} stroke={gridColor} />
+                <XAxis
+                  dataKey="label"
+                  tick={{ fill: tickColor, fontSize: 12 }}
+                  axisLine={false}
+                  tickLine={false}
                 />
-                <YAxis 
+                <YAxis
                   domain={[0, 100]}
-                  className="text-xs"
+                  tick={{ fill: tickColor, fontSize: 12 }}
                   tickFormatter={(value) => `${value}%`}
-                  tick={{ fill: 'currentColor' }}
+                  axisLine={false}
+                  tickLine={false}
+                  width={40}
                 />
-                <Tooltip 
+                <Tooltip
                   formatter={(value: number) => [`${Math.round(value)}%`, 'Latest completion avg.']}
                   labelFormatter={(label, payload) => {
                     const point = payload?.[0]?.payload as CompletionTrendPoint | undefined;
@@ -396,25 +409,317 @@ export function Progress() {
 
                     return `${label} | ${point.trackedWorkouts} workout${point.trackedWorkouts === 1 ? '' : 's'} | ${trendText}`;
                   }}
-                  contentStyle={{
-                    backgroundColor: 'var(--tooltip-bg, #374151)',
-                    border: 'none',
-                    borderRadius: '8px',
-                    color: 'var(--tooltip-text, white)'
-                  }}
+                  contentStyle={tooltipStyle}
                 />
                 <Line
                   type="monotone"
                   dataKey="completion"
-                  stroke="#059669"
-                  strokeWidth={3}
-                  dot={{ fill: '#059669', strokeWidth: 2, r: 4 }}
+                  stroke={lineColor}
+                  strokeWidth={2}
+                  dot={{ fill: lineColor, strokeWidth: 0, r: 4 }}
+                  activeDot={{ r: 5, strokeWidth: 2, stroke: darkMode ? '#111827' : '#ffffff' }}
                 />
               </LineChart>
             </ResponsiveContainer>
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+function StatCard({
+  icon,
+  title,
+  value,
+  caption,
+}: {
+  icon: ReactNode;
+  title: string;
+  value: string;
+  caption: string;
+}) {
+  return (
+    <div className="card p-6">
+      <div className="flex items-center gap-2.5 mb-4">
+        <span className="icon-chip h-8 w-8 rounded-lg">{icon}</span>
+        <h2 className="text-sm font-medium text-gray-500 dark:text-gray-400">{title}</h2>
+      </div>
+      <p className="text-3xl font-semibold tracking-tight text-gray-900 dark:text-white">
+        {value}
+      </p>
+      <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{caption}</p>
+    </div>
+  );
+}
+// Soft tag colors for muscle chips — deterministic per name so a muscle keeps
+// its color everywhere (decorative only; the label carries the meaning).
+const MUSCLE_CHIP_STYLES = [
+  'bg-rose-50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-300',
+  'bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300',
+  'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300',
+  'bg-sky-50 text-sky-700 dark:bg-sky-500/10 dark:text-sky-300',
+  'bg-violet-50 text-violet-700 dark:bg-violet-500/10 dark:text-violet-300',
+  'bg-indigo-50 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-300',
+];
+
+function muscleChipStyle(name: string) {
+  let hash = 0;
+  for (const ch of name) hash = (hash * 31 + ch.charCodeAt(0)) >>> 0;
+  return MUSCLE_CHIP_STYLES[hash % MUSCLE_CHIP_STYLES.length];
+}
+
+function ProgressRing({
+  value,
+  label,
+  colorClass,
+}: {
+  value: number | null;
+  label: string;
+  colorClass: string;
+}) {
+  const size = 44;
+  const stroke = 4;
+  const radius = (size - stroke) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const pct = value ?? 0;
+
+  return (
+    <div className="flex flex-col items-center gap-1">
+      <div className="relative" style={{ width: size, height: size }}>
+        <svg width={size} height={size} className="-rotate-90">
+          <circle
+            cx={size / 2}
+            cy={size / 2}
+            r={radius}
+            fill="none"
+            strokeWidth={stroke}
+            className="stroke-gray-100 dark:stroke-gray-800"
+          />
+          <circle
+            cx={size / 2}
+            cy={size / 2}
+            r={radius}
+            fill="none"
+            strokeWidth={stroke}
+            strokeLinecap="round"
+            strokeDasharray={circumference}
+            strokeDashoffset={circumference * (1 - pct / 100)}
+            className={colorClass}
+          />
+        </svg>
+        <span className="absolute inset-0 flex items-center justify-center text-[10px] font-semibold tabular-nums text-gray-700 dark:text-gray-200">
+          {value !== null ? `${value}%` : '–'}
+        </span>
+      </div>
+      <span className="text-[10px] font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">
+        {label}
+      </span>
+    </div>
+  );
+}
+
+/** Notion-style "training plan" overview: one row per routine with target
+ *  muscles, latest & record completion, and last session duration. */
+function TrainingPlanCard() {
+  const { templates, workouts } = useWorkoutStore();
+
+  const rows = useMemo(
+    () =>
+      templates.map((template) => {
+        const history = workouts
+          .filter((w) => w.name === template.name)
+          .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        const latest = history[0];
+        const record = history.length
+          ? Math.max(...history.map((w) => w.completionPercentage))
+          : null;
+        const muscles = Array.from(
+          new Set(template.exercises.flatMap((e) => e.targetMuscles ?? []))
+        );
+        return {
+          id: template.id,
+          name: template.name,
+          muscles,
+          latest: latest ? Math.round(latest.completionPercentage) : null,
+          record: record !== null ? Math.round(record) : null,
+          lastMinutes: latest ? Math.round(latest.duration / 60) : null,
+        };
+      }),
+    [templates, workouts]
+  );
+
+  if (rows.length === 0) return null;
+
+  return (
+    <div className="card p-6">
+      <div className="flex items-center gap-2.5 mb-1">
+        <span className="icon-chip h-8 w-8 rounded-lg">
+          <ClipboardList className="h-4 w-4" />
+        </span>
+        <h3 className="text-lg font-semibold tracking-tight text-gray-900 dark:text-white">
+          Training Plan
+        </h3>
+      </div>
+      <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+        Latest and record completion for each routine, from your workout history.
+      </p>
+
+      <div className="divide-y divide-gray-100 dark:divide-white/[0.06]">
+        {rows.map((row) => (
+          <div
+            key={row.id}
+            className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3 py-4 first:pt-0 last:pb-0"
+          >
+            <div className="min-w-0 flex-1">
+              <h4 className="font-medium text-gray-900 dark:text-white truncate">{row.name}</h4>
+              {row.muscles.length > 0 && (
+                <div className="mt-1.5 flex flex-wrap gap-1.5">
+                  {row.muscles.map((muscle) => (
+                    <span
+                      key={muscle}
+                      className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${muscleChipStyle(muscle)}`}
+                    >
+                      {muscle}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="flex items-center gap-5">
+              <ProgressRing
+                value={row.latest}
+                label="Latest"
+                colorClass="stroke-indigo-600 dark:stroke-indigo-500"
+              />
+              <ProgressRing
+                value={row.record}
+                label="Record"
+                colorClass="stroke-emerald-600 dark:stroke-emerald-500"
+              />
+              <div className="flex w-14 flex-col items-center gap-1">
+                <span className="flex h-11 items-center text-sm font-semibold tabular-nums text-gray-900 dark:text-white">
+                  {row.lastMinutes !== null ? `${row.lastMinutes}m` : '–'}
+                </span>
+                <span className="flex items-center gap-1 text-[10px] font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">
+                  <Clock className="h-3 w-3" />
+                  Time
+                </span>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** Body-weight log with a trend chart, like a Notion weight chart. */
+function BodyWeightCard({ theme }: { theme: ChartTheme }) {
+  const { weightLog } = useWorkoutStore();
+  const [isLogModalOpen, setIsLogModalOpen] = useState(false);
+
+  // Different measure than the completion charts, so it gets its own hue
+  // (validated for contrast on both surfaces).
+  const weightColor = theme.darkMode ? '#8b5cf6' : '#7c3aed';
+
+  const data = weightLog.map((entry) => ({
+    label: new Date(entry.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
+    fullDate: new Date(entry.date).toLocaleDateString(),
+    weightKg: entry.weightKg,
+  }));
+
+  const latest = weightLog[weightLog.length - 1];
+  const previous = weightLog[weightLog.length - 2];
+  const delta = latest && previous ? latest.weightKg - previous.weightKg : null;
+
+  return (
+    <div className="card p-6">
+      <div className="flex items-start justify-between gap-3 mb-4">
+        <div>
+          <div className="flex items-center gap-2.5">
+            <span className="icon-chip h-8 w-8 rounded-lg bg-violet-50 text-violet-600 dark:bg-violet-500/10 dark:text-violet-400">
+              <Scale className="h-4 w-4" />
+            </span>
+            <h3 className="text-lg font-semibold tracking-tight text-gray-900 dark:text-white">
+              Body Weight
+            </h3>
+          </div>
+          {latest ? (
+            <div className="mt-3 flex flex-wrap items-baseline gap-2">
+              <span className="whitespace-nowrap text-3xl font-semibold tracking-tight text-gray-900 dark:text-white">
+                {latest.weightKg} kg
+              </span>
+              {delta !== null && delta !== 0 && (
+                <span
+                  className={`whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium ${
+                    delta > 0
+                      ? 'bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300'
+                      : 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300'
+                  }`}
+                >
+                  {delta > 0 ? '+' : ''}
+                  {delta.toFixed(1)} kg vs last entry
+                </span>
+              )}
+            </div>
+          ) : (
+            <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+              Log your weight after workouts to see your trend here.
+            </p>
+          )}
+        </div>
+        <button onClick={() => setIsLogModalOpen(true)} className="btn-secondary flex-shrink-0">
+          <Plus className="h-4 w-4" />
+          Log weight
+        </button>
+      </div>
+
+      {data.length >= 2 ? (
+        <div className="h-[240px]">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={data}>
+              <CartesianGrid vertical={false} stroke={theme.gridColor} />
+              <XAxis
+                dataKey="label"
+                tick={{ fill: theme.tickColor, fontSize: 12 }}
+                axisLine={false}
+                tickLine={false}
+                minTickGap={24}
+              />
+              <YAxis
+                domain={['dataMin - 1', 'dataMax + 1']}
+                tick={{ fill: theme.tickColor, fontSize: 12 }}
+                tickFormatter={(value) => `${value}`}
+                axisLine={false}
+                tickLine={false}
+                width={40}
+              />
+              <Tooltip
+                formatter={(value: number) => [`${value} kg`, 'Weight']}
+                labelFormatter={(_, payload) => payload?.[0]?.payload?.fullDate ?? ''}
+                contentStyle={theme.tooltipStyle}
+              />
+              <Line
+                type="monotone"
+                dataKey="weightKg"
+                stroke={weightColor}
+                strokeWidth={2}
+                dot={{ fill: weightColor, strokeWidth: 0, r: 4 }}
+                activeDot={{ r: 5, strokeWidth: 2, stroke: theme.darkMode ? '#111827' : '#ffffff' }}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      ) : (
+        data.length === 1 && (
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            One entry logged — add another to see the trend line.
+          </p>
+        )
+      )}
+
+      <LogWeightModal isOpen={isLogModalOpen} onClose={() => setIsLogModalOpen(false)} />
     </div>
   );
 }
