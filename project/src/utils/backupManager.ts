@@ -35,7 +35,7 @@ export const backupManager = {
         path: BACKUP_DIR,
         directory: Directory.Documents,
       });
-    } catch (e) {
+    } catch {
       // Directory likely doesn't exist, try to create it
       await Filesystem.mkdir({
         path: BACKUP_DIR,
@@ -99,6 +99,7 @@ export const backupManager = {
       workouts: state.workouts,
       templates: state.templates,
       userProfile: state.userProfile,
+      routineBookmarks: state.routineBookmarks,
       notificationSettings: state.notificationSettings,
       darkMode: state.darkMode,
       timestamp: new Date().toISOString(),
@@ -151,7 +152,7 @@ export const backupManager = {
         directory: Directory.Documents,
       });
       return result.files.filter(f => f.name.startsWith('itrack-backup-') && f.name.endsWith('.json'));
-    } catch (error) {
+    } catch {
       return [];
     }
   },

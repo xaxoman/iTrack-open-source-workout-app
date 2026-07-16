@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { Workout, WorkoutTemplate, EquipmentItem, WeightEntry } from '../types/workout';
+import { Workout, WorkoutTemplate, EquipmentItem, WeightEntry, RoutineBookmark } from '../types/workout';
 
 export interface NotificationSettings {
   enabled: boolean;
@@ -41,6 +41,8 @@ interface WorkoutStore {
   userProfile: UserProfile | null;
   /** Body-weight log, kept sorted by date ascending, one entry per day. */
   weightLog: WeightEntry[];
+  /** Notes & video bookmarks per routine, keyed by template id. */
+  routineBookmarks: Record<string, RoutineBookmark[]>;
   // --- AI Coach ---
   aiCoach: AICoachConfig;
   equipment: EquipmentItem[];
@@ -61,6 +63,8 @@ interface WorkoutStore {
   updateUserProfile: (profile: UserProfile) => void;
   addWeightEntry: (entry: WeightEntry) => void;
   deleteWeightEntry: (id: string) => void;
+  addRoutineBookmark: (templateId: string, bookmark: RoutineBookmark) => void;
+  deleteRoutineBookmark: (templateId: string, bookmarkId: string) => void;
   setAICoachConfig: (config: Partial<AICoachConfig>) => void;
   updateEquipment: (equipment: EquipmentItem[]) => void;
   updateExerciseWeights: (weights: Record<string, number>) => void;
@@ -88,6 +92,7 @@ export const useWorkoutStore = create<WorkoutStore>()(
       },
       userProfile: null,
       weightLog: [],
+      routineBookmarks: {},
       aiCoach: { apiKey: '', model: DEFAULT_GEMINI_MODEL, thinkingLevel: 'high' },
       equipment: [],
       exerciseWeights: {},
@@ -122,9 +127,15 @@ export const useWorkoutStore = create<WorkoutStore>()(
           ),
         })),
       deleteTemplate: (id) =>
-        set((state) => ({
-          templates: state.templates.filter((t) => t.id !== id),
-        })),
+        set((state) => {
+          // Bookmarks belong to the routine — drop them with it.
+          const routineBookmarks = { ...state.routineBookmarks };
+          delete routineBookmarks[id];
+          return {
+            templates: state.templates.filter((t) => t.id !== id),
+            routineBookmarks,
+          };
+        }),
       updateNotificationSettings: (settings) =>
         set({ notificationSettings: settings }),
       updateUserProfile: (profile) =>
@@ -145,6 +156,22 @@ export const useWorkoutStore = create<WorkoutStore>()(
         set((state) => ({
           weightLog: state.weightLog.filter((e) => e.id !== id),
         })),
+      addRoutineBookmark: (templateId, bookmark) =>
+        set((state) => ({
+          routineBookmarks: {
+            ...state.routineBookmarks,
+            [templateId]: [...(state.routineBookmarks[templateId] ?? []), bookmark],
+          },
+        })),
+      deleteRoutineBookmark: (templateId, bookmarkId) =>
+        set((state) => ({
+          routineBookmarks: {
+            ...state.routineBookmarks,
+            [templateId]: (state.routineBookmarks[templateId] ?? []).filter(
+              (b) => b.id !== bookmarkId
+            ),
+          },
+        })),
       setAICoachConfig: (config) =>
         set((state) => ({ aiCoach: { ...state.aiCoach, ...config } })),
       updateEquipment: (equipment) => set({ equipment }),
@@ -157,6 +184,7 @@ export const useWorkoutStore = create<WorkoutStore>()(
           templates: data.templates || state.templates,
           userProfile: data.userProfile || state.userProfile,
           weightLog: data.weightLog || state.weightLog,
+          routineBookmarks: data.routineBookmarks || state.routineBookmarks,
           notificationSettings: data.notificationSettings || state.notificationSettings,
           darkMode: data.darkMode ?? state.darkMode,
           // AI Coach user data (equipment/weights) syncs; the API key stays local.
