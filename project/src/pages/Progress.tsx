@@ -1,8 +1,9 @@
 import { useMemo, useState, type ReactNode, type CSSProperties } from 'react';
-import { LineChart as LineChartIcon, Calendar, TrendingUp, Activity, Scale, Plus, ClipboardList, Clock } from 'lucide-react';
+import { LineChart as LineChartIcon, Calendar, TrendingUp, Activity, Scale, Plus, ClipboardList, Clock, Bookmark } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useWorkoutStore } from '../store/useWorkoutStore';
 import { LogWeightModal } from '../components/LogWeightModal';
+import { RoutineBookmarksModal } from '../components/RoutineBookmarksModal';
 import type { Workout } from '../types/workout';
 import { formatTime } from '../utils/formatTime';
 
@@ -95,7 +96,7 @@ export function Progress() {
     // Calculate streak (consecutive days with workouts)
     const sortedWorkouts = [...workouts].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     let streak = 0;
-    let currentDate = new Date();
+    const currentDate = new Date();
     currentDate.setHours(0, 0, 0, 0);
 
     for (let i = 0; i < 30; i++) { // Check last 30 days
@@ -520,9 +521,13 @@ function ProgressRing({
 }
 
 /** Notion-style "training plan" overview: one row per routine with target
- *  muscles, latest & record completion, and last session duration. */
+ *  muscles, latest & record completion, and last session duration. Tapping a
+ *  routine opens its notes & video bookmarks. */
 function TrainingPlanCard() {
-  const { templates, workouts } = useWorkoutStore();
+  const { templates, workouts, routineBookmarks } = useWorkoutStore();
+  const [bookmarksRoutine, setBookmarksRoutine] = useState<{ id: string; name: string } | null>(
+    null
+  );
 
   const rows = useMemo(
     () =>
@@ -544,9 +549,10 @@ function TrainingPlanCard() {
           latest: latest ? Math.round(latest.completionPercentage) : null,
           record: record !== null ? Math.round(record) : null,
           lastMinutes: latest ? Math.round(latest.duration / 60) : null,
+          bookmarkCount: (routineBookmarks[template.id] ?? []).length,
         };
       }),
-    [templates, workouts]
+    [templates, workouts, routineBookmarks]
   );
 
   if (rows.length === 0) return null;
@@ -562,17 +568,30 @@ function TrainingPlanCard() {
         </h3>
       </div>
       <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-        Latest and record completion for each routine, from your workout history.
+        Latest and record completion for each routine. Tap a routine to add notes and video
+        bookmarks.
       </p>
 
       <div className="divide-y divide-gray-100 dark:divide-white/[0.06]">
         {rows.map((row) => (
-          <div
+          <button
             key={row.id}
-            className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3 py-4 first:pt-0 last:pb-0"
+            type="button"
+            onClick={() => setBookmarksRoutine({ id: row.id, name: row.name })}
+            className="group flex w-full flex-wrap items-center justify-between gap-x-4 gap-y-3 py-4 text-left first:pt-0 last:pb-0 focus-visible:outline-none"
           >
             <div className="min-w-0 flex-1">
-              <h4 className="font-medium text-gray-900 dark:text-white truncate">{row.name}</h4>
+              <span className="flex items-center gap-2">
+                <h4 className="font-medium text-gray-900 transition-colors group-hover:text-indigo-600 group-focus-visible:text-indigo-600 dark:text-white dark:group-hover:text-indigo-400 dark:group-focus-visible:text-indigo-400 truncate">
+                  {row.name}
+                </h4>
+                {row.bookmarkCount > 0 && (
+                  <span className="inline-flex flex-shrink-0 items-center gap-1 text-xs font-medium tabular-nums text-gray-400 dark:text-gray-500">
+                    <Bookmark className="h-3 w-3" />
+                    {row.bookmarkCount}
+                  </span>
+                )}
+              </span>
               {row.muscles.length > 0 && (
                 <div className="mt-1.5 flex flex-wrap gap-1.5">
                   {row.muscles.map((muscle) => (
@@ -607,9 +626,18 @@ function TrainingPlanCard() {
                 </span>
               </div>
             </div>
-          </div>
+          </button>
         ))}
       </div>
+
+      {bookmarksRoutine && (
+        <RoutineBookmarksModal
+          isOpen
+          onClose={() => setBookmarksRoutine(null)}
+          templateId={bookmarksRoutine.id}
+          routineName={bookmarksRoutine.name}
+        />
+      )}
     </div>
   );
 }

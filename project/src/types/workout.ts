@@ -33,6 +33,21 @@ export interface WorkoutTemplate {
   numberOfSets: number; // New field to store the number of sets
 }
 
+/**
+ * A Notion-style bookmark attached to a routine: either a video/link card
+ * or a plain text note (e.g. "watch minute 5:17 for form").
+ */
+export interface RoutineBookmark {
+  id: string;
+  type: 'video' | 'note';
+  /** For 'video': the URL. For 'note': the note text. */
+  content: string;
+  /** Link metadata fetched best-effort when the bookmark is added. */
+  title?: string;
+  author?: string;
+  createdAt: string;
+}
+
 /** A piece of equipment the user owns, used to ground AI recommendations. */
 export interface EquipmentItem {
   id: string;

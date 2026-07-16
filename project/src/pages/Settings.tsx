@@ -33,6 +33,7 @@ export function Settings() {
     weightLog,
     workouts,
     templates,
+    routineBookmarks,
     importData,
     aiCoach,
     setAICoachConfig,
@@ -94,6 +95,7 @@ export function Settings() {
       templates,
       userProfile,
       weightLog,
+      routineBookmarks,
       notificationSettings,
       darkMode
     };
