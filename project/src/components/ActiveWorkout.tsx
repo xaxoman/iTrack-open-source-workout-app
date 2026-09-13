@@ -4,6 +4,7 @@ import { WorkoutProgressBar } from './WorkoutProgressBar';
 import { RestTimer } from './RestTimer';
 import { ExerciseVideo } from './ExerciseVideo';
 import { QuitWorkoutModal } from './QuitWorkoutModal';
+import { CompleteWorkoutModal } from './CompleteWorkoutModal';
 import { Exercise } from '../types/workout';
 import { CheckCircle, Circle, Timer } from 'lucide-react';
 import { formatTime } from '../utils/formatTime';
@@ -23,6 +24,7 @@ export function ActiveWorkout({ name, exercises, onComplete, onQuit }: ActiveWor
   const [showRestTimer, setShowRestTimer] = useState(false);
   const [exerciseTimers, setExerciseTimers] = useState<Record<string, number>>({});
   const [showQuitModal, setShowQuitModal] = useState(false);
+  const [showCompleteModal, setShowCompleteModal] = useState(false);
   const currentExerciseRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -244,7 +246,7 @@ export function ActiveWorkout({ name, exercises, onComplete, onQuit }: ActiveWor
       <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-950 p-4 border-t border-gray-200/70 dark:border-white/[0.07] z-50 pb-safe">
         <div className="max-w-7xl mx-auto">
           <button
-            onClick={handleComplete}
+            onClick={() => setShowCompleteModal(true)}
             className="btn-primary w-full py-3"
           >
             Complete Workout
@@ -254,6 +256,15 @@ export function ActiveWorkout({ name, exercises, onComplete, onQuit }: ActiveWor
 
       {showRestTimer && <RestTimer onComplete={handleRestComplete} />}
       
+      <CompleteWorkoutModal
+        isOpen={showCompleteModal}
+        onClose={() => setShowCompleteModal(false)}
+        onConfirm={handleComplete}
+        completedExercises={completedExercises.length}
+        totalExercises={exercises.length}
+        duration={duration}
+      />
+
       <QuitWorkoutModal
         isOpen={showQuitModal}
         onClose={() => setShowQuitModal(false)}
