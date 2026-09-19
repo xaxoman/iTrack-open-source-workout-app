@@ -12,7 +12,7 @@ export function Home() {
     <div className="space-y-6">
       <section className="text-center py-10 sm:py-14">
         <h1 className="text-4xl sm:text-5xl font-semibold tracking-tight text-gray-900 dark:text-white mb-4">
-          Welcome to FitTrack
+          Welcome to iTrack
         </h1>
         <p className="text-base sm:text-lg text-gray-500 dark:text-gray-400 mb-8">
           Track your workouts, achieve your goals

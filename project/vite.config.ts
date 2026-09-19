@@ -9,9 +9,9 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       manifest: {
-        name: 'FitTrack - Workout Tracker',
-        short_name: 'FitTrack',
-        description: 'Track and monitor your workout progress with FitTrack',
+        name: 'iTrack - Workout Tracker',
+        short_name: 'iTrack',
+        description: 'Track and monitor your workout progress with iTrack',
         theme_color: '#4f46e5',
       },
       workbox: {
