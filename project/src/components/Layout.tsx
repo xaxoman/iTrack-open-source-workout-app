@@ -30,7 +30,7 @@ export function Layout() {
                 <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-indigo-600 shadow-sm shadow-indigo-600/30">
                   <Dumbbell className="h-[18px] w-[18px] text-white" />
                 </span>
-                <span className="font-semibold tracking-tight text-gray-900 dark:text-white">FitTrack</span>
+                <span className="font-semibold tracking-tight text-gray-900 dark:text-white">iTrack</span>
               </Link>
               <div className="hidden md:flex items-center gap-1">
                 <NavLink to="/" icon={<Home className="h-4 w-4" />} text="Home" />
