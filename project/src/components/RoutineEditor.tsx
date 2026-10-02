@@ -2,11 +2,10 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { DragDropContext, Draggable, Droppable, type DropResult } from '@hello-pangea/dnd';
 import { ChevronDown, ChevronUp, GripVertical, Minus, Plus, PlusCircle } from 'lucide-react';
 import { EditorBar, FullScreen, Group, Row, Segmented } from './ui';
+import { MuscleSelect } from './MuscleSelect';
 import { useI18n } from '../i18n';
 import { useWorkoutStore } from '../store/useWorkoutStore';
 import type { Exercise, WorkoutTemplate } from '../types/workout';
-
-export const MUSCLE_GROUPS = ['Chest', 'Back', 'Shoulders', 'Biceps', 'Triceps', 'Legs', 'Core', 'Glutes', 'Calves', 'Forearms'];
 
 type DraftExercise = Omit<Exercise, 'sets'>;
 
@@ -29,7 +28,7 @@ interface RoutineEditorProps {
 
 /** Full-screen editor for creating or editing a routine. */
 export function RoutineEditor({ open, onClose, template }: RoutineEditorProps) {
-  const { t, tp, clock, muscle } = useI18n();
+  const { t, tp, clock } = useI18n();
   const { addTemplate, updateTemplate } = useWorkoutStore();
   const [name, setName] = useState('');
   const [sets, setSets] = useState(3);
@@ -199,31 +198,12 @@ export function RoutineEditor({ open, onClose, template }: RoutineEditorProps) {
                                 />
                               </Field>
                               <div className="py-2.5">
-                                <p className="text-gray-600 dark:text-gray-300">{t('editor.muscles')}</p>
-                                <div className="mt-2 flex flex-wrap gap-1.5">
-                                  {MUSCLE_GROUPS.map((m) => {
-                                    const on = exercise.targetMuscles.includes(m);
-                                    return (
-                                      <button
-                                        key={m}
-                                        type="button"
-                                        aria-pressed={on}
-                                        onClick={() =>
-                                          update(exercise.id, {
-                                            targetMuscles: on ? exercise.targetMuscles.filter((x) => x !== m) : [...exercise.targetMuscles, m],
-                                          })
-                                        }
-                                        className={`rounded-full px-3 py-1 text-[12px] font-medium transition-colors ${
-                                          on
-                                            ? 'bg-indigo-600 text-white dark:bg-indigo-500'
-                                            : 'bg-white text-gray-600 ring-1 ring-gray-200 hover:ring-indigo-300 dark:bg-transparent dark:text-gray-300 dark:ring-white/15'
-                                        }`}
-                                      >
-                                        {muscle(m)}
-                                      </button>
-                                    );
-                                  })}
-                                </div>
+                                <p className="mb-2 text-gray-600 dark:text-gray-300">{t('editor.muscles')}</p>
+                                <MuscleSelect
+                                  label={t('editor.muscles')}
+                                  value={exercise.targetMuscles}
+                                  onChange={(targetMuscles) => update(exercise.id, { targetMuscles })}
+                                />
                               </div>
                               <div className="py-2.5">
                                 <p className="text-gray-600 dark:text-gray-300">{t('editor.notes')}</p>
