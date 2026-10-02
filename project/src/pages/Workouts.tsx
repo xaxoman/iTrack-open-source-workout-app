@@ -26,7 +26,8 @@ export function Workouts() {
   const { workouts, templates, routineBookmarks, deleteTemplate, addWorkout, setIsWorkoutActive } = useWorkoutStore();
 
   const [active, setActive] = useState<WorkoutTemplate | null>(null);
-  const [expanded, setExpanded] = useState<string | null>(templates[0]?.id ?? null);
+  // All routines start collapsed; tap one to see its exercises.
+  const [expanded, setExpanded] = useState<string | null>(null);
   const [editor, setEditor] = useState<{ template?: WorkoutTemplate } | null>(null);
   const [notesFor, setNotesFor] = useState<WorkoutTemplate | null>(null);
   const [deleteFor, setDeleteFor] = useState<WorkoutTemplate | null>(null);

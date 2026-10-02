@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Activity, Trash2 } from 'lucide-react';
+import { Activity, ChevronRight, StickyNote, Trash2, Trophy } from 'lucide-react';
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { useWorkoutStore } from '../store/useWorkoutStore';
 import { PageTitle } from '../components/ui';
@@ -225,73 +225,62 @@ function TrainingPlan() {
 
   if (rows.length === 0) return null;
 
-  const values = rows.flatMap((r) => [r.latest, r.record]).filter((v): v is number => v !== null);
-  const min = values.length ? Math.max(0, Math.min(85, Math.floor((Math.min(...values) - 5) / 5) * 5)) : 85;
-  const x = (v: number) => ((v - min) / (100 - min)) * 100;
-
   return (
     <section className="mt-8 border-t hairline pt-4">
       <h2 className="text-[20px] font-semibold tracking-tight text-gray-900 dark:text-white">{t('plan.title')}</h2>
       <p className="mt-0.5 text-[13px] text-gray-500 dark:text-gray-400">{t('plan.subtitle')}</p>
-      <div className="mt-3 flex items-center gap-5 text-[12px] text-gray-600 dark:text-gray-300">
-        <span className="flex items-center gap-1.5">
-          <span className="h-2.5 w-2.5 rounded-full bg-indigo-600 dark:bg-indigo-500" />
-          {t('plan.latest')}
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="h-2.5 w-2.5 rounded-full bg-emerald-600" />
-          {t('plan.record')}
-        </span>
-      </div>
       <div className="mt-1">
         {rows.map((row) => (
-          <button
-            key={row.template.id}
-            onClick={() => setNotesFor(row.template)}
-            className="block w-full border-b hairline py-4 text-left transition-colors hover:bg-gray-50/60 dark:hover:bg-white/[0.02]"
-          >
+          <div key={row.template.id} className="border-b hairline py-4">
             <div className="flex items-baseline justify-between gap-3">
               <p className="truncate text-[16px] font-semibold text-gray-900 dark:text-white">{row.template.name}</p>
-              {row.lastDuration !== null && <span className="flex-shrink-0 text-[13px] tabular-nums text-gray-500 dark:text-gray-400">{duration(row.lastDuration)}</span>}
+              {row.lastDuration !== null && (
+                <span className="flex-shrink-0 text-[13px] tabular-nums text-gray-500 dark:text-gray-400">{duration(row.lastDuration)}</span>
+              )}
             </div>
-            <p className="text-[12px] text-gray-500 dark:text-gray-400">
-              {[row.muscles.map(muscle).join(', '), row.notes ? tp('plan.notes', row.notes) : ''].filter(Boolean).join(' · ') || '—'}
-            </p>
+            {row.muscles.length > 0 && <p className="text-[12px] text-gray-500 dark:text-gray-400">{row.muscles.map(muscle).join(', ')}</p>}
+
             {row.latest !== null && row.record !== null ? (
-              <>
-                <div className="relative mt-4 h-5" aria-hidden="true">
-                  <div className="absolute inset-x-0 top-1/2 h-px bg-gray-200 dark:bg-white/10" />
-                  <div
-                    className="absolute top-1/2 h-[2px] -translate-y-1/2 bg-gray-300 dark:bg-white/20"
-                    style={{ left: `${x(row.latest)}%`, width: `${x(row.record) - x(row.latest)}%` }}
-                  />
-                  <span
-                    className="absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-indigo-600 ring-2 ring-white dark:bg-indigo-500 dark:ring-gray-950"
-                    style={{ left: `${x(row.latest)}%` }}
-                  />
-                  <span
-                    className="absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-emerald-600 ring-2 ring-white dark:ring-gray-950"
-                    style={{ left: `${x(row.record)}%`, ...(row.latest === row.record ? { boxShadow: '0 0 0 4px #4f46e5' } : {}) }}
-                  />
-                </div>
-                <div className="mt-1 flex justify-between text-[11px] text-gray-400 dark:text-gray-500">
-                  <span>{min}%</span>
-                  <span className="font-medium tabular-nums text-gray-700 dark:text-gray-300">
-                    {row.latest === row.record
-                      ? t('plan.matchedRecord', { pct: row.latest })
-                      : t('plan.latestVsRecord', { latest: row.latest, record: row.record })}
-                  </span>
-                  <span>100%</span>
-                </div>
-              </>
+              <div className="mt-3 space-y-2">
+                <ResultBar label={t('plan.latest')} value={row.latest} barClass="bg-indigo-600 dark:bg-indigo-500" />
+                <ResultBar label={t('plan.record')} value={row.record} barClass="bg-emerald-600" />
+                {row.latest === row.record && (
+                  <p className="flex items-center gap-1.5 text-[12px] text-gray-600 dark:text-gray-300">
+                    <Trophy className="h-3.5 w-3.5 text-emerald-600" strokeWidth={2} />
+                    {t('plan.matchedRecord')}
+                  </p>
+                )}
+              </div>
             ) : (
               <p className="mt-2 text-[12px] text-gray-400 dark:text-gray-500">{t('plan.notDoneYet')}</p>
             )}
-          </button>
+
+            <button
+              onClick={() => setNotesFor(row.template)}
+              className="mt-3 inline-flex items-center gap-1.5 rounded-full border hairline px-3 py-1.5 text-[13px] font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-white/[0.06]"
+            >
+              <StickyNote className="h-4 w-4 text-indigo-600 dark:text-indigo-400" strokeWidth={1.75} />
+              {row.notes ? tp('plan.openNotes', row.notes) : t('plan.addNotes')}
+              <ChevronRight className="h-3.5 w-3.5 text-gray-400" />
+            </button>
+          </div>
         ))}
       </div>
       <RoutineNotes template={notesFor} onClose={() => setNotesFor(null)} />
     </section>
+  );
+}
+
+/** Completion on a full 0–100% track, labelled at both ends. */
+function ResultBar({ label, value, barClass }: { label: string; value: number; barClass: string }) {
+  return (
+    <div className="grid grid-cols-[64px_1fr_40px] items-center gap-3">
+      <span className="text-[12px] text-gray-500 dark:text-gray-400">{label}</span>
+      <div className="h-2 overflow-hidden rounded-full bg-gray-100 dark:bg-white/10" role="meter" aria-valuemin={0} aria-valuemax={100} aria-valuenow={value} aria-label={label}>
+        <div className={`h-2 rounded-full ${barClass}`} style={{ width: `${Math.max(2, Math.min(100, value))}%` }} />
+      </div>
+      <span className="text-right text-[13px] font-semibold tabular-nums text-gray-900 dark:text-white">{value}%</span>
+    </div>
   );
 }
 

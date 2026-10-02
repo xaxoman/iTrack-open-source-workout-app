@@ -4,6 +4,7 @@ import { ArrowRight, Moon, Play, Plus, Sparkles, Sun, UserCircle2 } from 'lucide
 import { useWorkoutStore } from '../store/useWorkoutStore';
 import { useAuthStore } from '../store/useAuthStore';
 import { AuthModal } from '../components/AuthModal';
+import { MuscleMap } from '../components/MuscleMap';
 import { IconButton } from '../components/ui';
 import { useI18n } from '../i18n';
 import { computeStreak, dayKey, nextRoutine, startOfWeek } from '../utils/workout';
@@ -171,6 +172,8 @@ export function Home() {
           ))}
         </section>
       )}
+
+      {recent[0] && <MuscleMap workout={recent[0]} />}
 
       <AuthModal isOpen={authOpen} onClose={() => setAuthOpen(false)} />
     </div>
