@@ -5,6 +5,8 @@ import type {
   WeightEntry,
 } from '../types/workout';
 import type { UserProfile } from '../store/useWorkoutStore';
+import { getI18n, type Lang } from '../i18n';
+import type { WeightUnit } from '../utils/units';
 
 const API_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
 
@@ -42,6 +44,24 @@ export interface GeneratedWorkout {
 
 class GeminiError extends Error {}
 
+/** How the coach should talk back: language and weight unit. */
+export interface CoachLocale {
+  lang: Lang;
+  unit: WeightUnit;
+}
+
+function localeRules(locale?: CoachLocale): string {
+  if (!locale) return '';
+  const lines: string[] = [];
+  if (locale.lang === 'it') {
+    lines.push('Write every human-readable text (prose, names, summaries, cues) in Italian.');
+  }
+  if (locale.unit === 'lb') {
+    lines.push('All weights in the data are in kg, but the trainee reads pounds: express any weight you mention in prose in lb (1 kg = 2.2 lb).');
+  }
+  return lines.length ? `\n${lines.join('\n')}\n` : '';
+}
+
 async function callGemini(
   apiKey: string,
   model: string,
@@ -49,7 +69,7 @@ async function callGemini(
   jsonSchema?: Record<string, unknown>,
   thinkingLevel?: ThinkingLevel
 ): Promise<string> {
-  if (!apiKey) throw new GeminiError('No Gemini API key set. Add one in Settings.');
+  if (!apiKey) throw new GeminiError(getI18n().t('coach.errors.noKey'));
 
   const generationConfig: Record<string, unknown> = { temperature: 0.7 };
   if (jsonSchema) {
@@ -76,7 +96,7 @@ async function callGemini(
       }
     );
   } catch {
-    throw new GeminiError('Network error reaching Gemini. Check your connection.');
+    throw new GeminiError(getI18n().t('coach.errors.network'));
   }
 
   if (!res.ok) {
@@ -88,21 +108,15 @@ async function callGemini(
       /* keep default detail */
     }
     if (res.status === 400 || res.status === 403) {
-      throw new GeminiError(
-        `Gemini rejected the request: ${detail}. Double-check your API key and model name.`
-      );
+      throw new GeminiError(getI18n().t('coach.errors.rejected', { detail }));
     }
     if (res.status === 404) {
-      throw new GeminiError(
-        `Model "${model}" isn't available for your API key (it may be retired). Set a current model in Settings, e.g. "gemini-flash-latest".`
-      );
+      throw new GeminiError(getI18n().t('coach.errors.model', { model }));
     }
     if (res.status === 429) {
-      throw new GeminiError(
-        `Gemini quota exceeded for "${model}". Google's free tier doesn't include this model — switch to a free model like "gemini-flash-latest" in Settings, or enable billing on your API key.`
-      );
+      throw new GeminiError(getI18n().t('coach.errors.quota', { model }));
     }
-    throw new GeminiError(`Gemini error: ${detail}`);
+    throw new GeminiError(getI18n().t('coach.errors.generic', { detail }));
   }
 
   const data = await res.json();
@@ -113,7 +127,7 @@ async function callGemini(
   if (!text) {
     const blockReason = data?.promptFeedback?.blockReason;
     throw new GeminiError(
-      blockReason ? `Gemini blocked the response (${blockReason}).` : 'Gemini returned an empty response.'
+      blockReason ? getI18n().t('coach.errors.blocked', { reason: blockReason }) : getI18n().t('coach.errors.empty')
     );
   }
   return text;
@@ -238,7 +252,8 @@ export async function analyzeTraining(
   apiKey: string,
   model: string,
   ctx: CoachContext,
-  thinkingLevel?: ThinkingLevel
+  thinkingLevel?: ThinkingLevel,
+  locale?: CoachLocale
 ): Promise<string> {
   const prompt = `You are an experienced, encouraging strength & conditioning coach.
 Analyze the trainee's data below and write a concise assessment in markdown.
@@ -250,7 +265,7 @@ Cover, briefly:
 4. End with a one-line question inviting them to choose a direction (harder / slight downgrade / maintain / something custom).
 
 Keep it under ~200 words. Do not invent data that isn't provided. Use kg for weights.
-
+${localeRules(locale)}
 ${buildContextBlock(ctx)}`;
 
   return callGemini(apiKey, model, prompt, undefined, thinkingLevel);
@@ -266,7 +281,8 @@ export async function generateWorkout(
   ctx: CoachContext,
   direction: CoachDirection,
   customRequest?: string,
-  thinkingLevel?: ThinkingLevel
+  thinkingLevel?: ThinkingLevel,
+  locale?: CoachLocale
 ): Promise<GeneratedWorkout> {
   const directionText: Record<CoachDirection, string> = {
     harder: 'Progress the training — make it more challenging (more volume, intensity, or harder variations), while staying safe and realistic for their equipment and current weights.',
@@ -312,7 +328,8 @@ Rules:
 - Give a sensible single numberOfSets for the whole workout.
 - Bodyweight exercises use suggestedWeightKg = 0.
 - Return ONLY the JSON described by the schema.
-
+- suggestedWeightKg is always in kg, whatever unit the trainee uses.
+${localeRules(locale)}
 ${buildContextBlock(ctx)}`;
 
   const raw = await callGemini(apiKey, model, prompt, schema, thinkingLevel);
@@ -321,11 +338,11 @@ ${buildContextBlock(ctx)}`;
   try {
     parsed = JSON.parse(raw) as GeneratedWorkout;
   } catch {
-    throw new GeminiError('Gemini returned malformed workout data. Try again.');
+    throw new GeminiError(getI18n().t('coach.errors.malformed'));
   }
 
   if (!parsed.exercises?.length) {
-    throw new GeminiError('Gemini did not return any exercises. Try again.');
+    throw new GeminiError(getI18n().t('coach.errors.noExercises'));
   }
   // Normalize/guard the values.
   parsed.numberOfSets = Math.min(Math.max(Math.round(parsed.numberOfSets || 3), 1), 8);
@@ -392,7 +409,7 @@ ${exercises.map((e) => `- ${e}`).join('\n')}`;
 }
 
 /** Convert an AI-generated workout into a saveable WorkoutTemplate. */
-export function toTemplate(gen: GeneratedWorkout): WorkoutTemplate {
+export function toTemplate(gen: GeneratedWorkout, formatWeight: (kg: number) => string = (kg) => `${kg} kg`): WorkoutTemplate {
   return {
     id: crypto.randomUUID(),
     name: gen.name,
@@ -400,7 +417,7 @@ export function toTemplate(gen: GeneratedWorkout): WorkoutTemplate {
     exercises: gen.exercises.map((e) => {
       const weightNote =
         typeof e.suggestedWeightKg === 'number' && e.suggestedWeightKg > 0
-          ? `Suggested weight: ${e.suggestedWeightKg} kg`
+          ? getI18n().t('coach.suggestedWeight', { weight: formatWeight(e.suggestedWeightKg) })
           : '';
       const description = [e.description, weightNote].filter(Boolean).join(' — ');
       return {

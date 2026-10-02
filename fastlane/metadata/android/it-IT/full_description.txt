@@ -1,0 +1,18 @@
+iTrack è un'app open source per tracciare gli allenamenti, pensata per la privacy, che ti aiuta a restare costante nel tuo percorso di fitness.
+
+Funzionalità:
+• Crea schede personalizzate con esercizi dettagliati
+• Segui l'allenamento in tempo reale: spunta ogni esercizio, serie per serie
+• Video o GIF dimostrativi in grande sopra l'esercizio in corso
+• Esercizi a ripetizioni o a tempo, con timer integrato
+• Timer di recupero con suoni inclusi nell'app, che funzionano anche offline
+• Muscoli coinvolti per ogni esercizio
+• Cronologia a calendario: apri, modifica o elimina gli allenamenti passati
+• Statistiche, andamento settimanale e record per ogni scheda
+• Registro del peso corporeo in kg o lb
+• Disponibile in italiano e in inglese
+• Nessun tracciamento, nessuna pubblicità, completamente gratuita
+
+iTrack è semplice, efficace e rispettosa della privacy. I tuoi dati restano sul tuo dispositivo: non raccogliamo alcun dato e non serve una connessione a internet per le funzioni principali.
+
+L'app è open source e sviluppata dalla community. I contributi sono benvenuti su GitHub!

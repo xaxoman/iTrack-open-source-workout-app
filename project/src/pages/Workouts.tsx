@@ -1,270 +1,242 @@
-import { useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { ChevronDown, ChevronUp, ClipboardList, Pencil, Play, Plus, StickyNote, Trash2 } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { useWorkoutStore } from '../store/useWorkoutStore';
-import { Plus, Calendar, Trash2, Play, Edit, Clock, ClipboardList, History as HistoryIcon } from 'lucide-react';
-import { CreateRoutineModal } from '../components/CreateRoutineModal';
-import { LogWeightModal } from '../components/LogWeightModal';
-import { EditTemplateModal } from '../components/EditTemplateModal';
-import { ConfirmDeleteModal } from '../components/ConfirmDeleteModal';
-import { ActiveWorkout } from '../components/ActiveWorkout';
-import { WorkoutTemplate, Exercise } from '../types/workout';
-import { formatTime } from '../utils/formatTime';
+import { ActiveWorkout, type WorkoutResult } from '../components/ActiveWorkout';
+import { RoutineEditor } from '../components/RoutineEditor';
+import { RoutineNotes } from '../components/RoutineNotes';
+import { HistoryCalendar } from '../components/HistoryCalendar';
+import { PastWorkout } from '../components/PastWorkout';
+import { LogWeightSheet } from '../components/LogWeightSheet';
+import { Dialog, IconButton, PageTitle, Tabs } from '../components/ui';
+import { useI18n } from '../i18n';
+import type { WorkoutTemplate } from '../types/workout';
+import { latestWorkout, workoutsForTemplate } from '../utils/workout';
+
+type Tab = 'routines' | 'history';
 
 export function Workouts() {
-  const { workouts, templates, deleteTemplate, addWorkout, setIsWorkoutActive } = useWorkoutStore();
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [isWeightPromptOpen, setIsWeightPromptOpen] = useState(false);
-  const [editingTemplate, setEditingTemplate] = useState<WorkoutTemplate | null>(null);
-  const [activeTemplate, setActiveTemplate] = useState<(WorkoutTemplate & { exercises: Exercise[] }) | null>(null);
-  const [deleteConfirmModal, setDeleteConfirmModal] = useState<{
-    isOpen: boolean;
-    templateId: string | null;
-    templateName: string;
-  }>({
-    isOpen: false,
-    templateId: null,
-    templateName: ''
-  });
+  const { t, tp, clock, date } = useI18n();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [params, setParams] = useSearchParams();
+  const tab: Tab = params.get('tab') === 'history' ? 'history' : 'routines';
 
-  // Create exercises with sets
-  const createExercisesWithSets = (template: WorkoutTemplate) => {
-    const exercisesWithSets: Exercise[] = [];
-    
-    // Create a copy of each exercise for each set
-    for (let setIndex = 0; setIndex < template.numberOfSets; setIndex++) {
-      template.exercises.forEach(exercise => {
-        exercisesWithSets.push({
-          ...exercise,
-          id: `${exercise.id}-set-${setIndex + 1}`, // Create unique ID for each exercise in each set
-          name: `${exercise.name} (Set ${setIndex + 1})`, // Add set number to name
-          sets: [] // Initialize empty sets array
-        });
-      });
-    }
-    
-    return exercisesWithSets;
-  };
+  const { workouts, templates, routineBookmarks, deleteTemplate, addWorkout, setIsWorkoutActive } = useWorkoutStore();
 
-  const handleStartWorkout = (template: WorkoutTemplate) => {
-    // Create a copy of the template with expanded exercises based on sets
-    const templateWithSets = {
-      ...template,
-      exercises: createExercisesWithSets(template)
-    };
-    setActiveTemplate(templateWithSets);
+  const [active, setActive] = useState<WorkoutTemplate | null>(null);
+  const [expanded, setExpanded] = useState<string | null>(templates[0]?.id ?? null);
+  const [editor, setEditor] = useState<{ template?: WorkoutTemplate } | null>(null);
+  const [notesFor, setNotesFor] = useState<WorkoutTemplate | null>(null);
+  const [deleteFor, setDeleteFor] = useState<WorkoutTemplate | null>(null);
+  const [openWorkoutId, setOpenWorkoutId] = useState<string | null>(null);
+  const [weightPrompt, setWeightPrompt] = useState(false);
+
+  const start = (template: WorkoutTemplate) => {
+    setNotesFor(null);
+    setActive(template);
     setIsWorkoutActive(true);
   };
 
-  const handleDeleteClick = (template: WorkoutTemplate) => {
-    setDeleteConfirmModal({
-      isOpen: true,
-      templateId: template.id,
-      templateName: template.name
-    });
-  };
+  // "Start" from the Today screen arrives as navigation state.
+  useEffect(() => {
+    const state = location.state as { start?: string; create?: boolean } | null;
+    if (!state?.start && !state?.create) return;
+    if (state.create) setEditor({});
+    const template = templates.find((tpl) => tpl.id === state.start);
+    if (template) start(template);
+    navigate(`${location.pathname}${location.search}`, { replace: true, state: null });
+    // Run once per navigation.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.state]);
 
-  const handleConfirmDelete = () => {
-    if (deleteConfirmModal.templateId) {
-      deleteTemplate(deleteConfirmModal.templateId);
+  const finish = (template: WorkoutTemplate, result: WorkoutResult) => {
+    // A session where nothing was ticked off isn't worth logging.
+    if (result.completionPercentage > 0) {
+      addWorkout({
+        id: crypto.randomUUID(),
+        name: template.name,
+        templateId: template.id,
+        exercises: result.exercises,
+        date: result.startedAt,
+        duration: result.duration,
+        completionPercentage: result.completionPercentage,
+        completed: true,
+        completedExerciseIds: result.completedExerciseIds,
+      });
+      setWeightPrompt(true);
     }
-    setDeleteConfirmModal({
-      isOpen: false,
-      templateId: null,
-      templateName: ''
-    });
+    setActive(null);
+    setIsWorkoutActive(false);
   };
 
-  const handleCancelDelete = () => {
-    setDeleteConfirmModal({
-      isOpen: false,
-      templateId: null,
-      templateName: ''
-    });
-  };
+  const setTab = (next: Tab) => setParams(next === 'history' ? { tab: 'history' } : {}, { replace: true });
 
-  const handleCompleteWorkout = (duration: number, completionPercentage: number) => {
-    if (activeTemplate) {
-      // Only log workouts with actual progress. A 0% workout (quit before
-      // completing any exercise) shouldn't clutter the history or skew stats.
-      if (completionPercentage > 0) {
-        const workout = {
-          id: crypto.randomUUID(),
-          name: activeTemplate.name,
-          exercises: activeTemplate.exercises, // These already have sets from createExercisesWithSets
-          date: new Date().toISOString(),
-          duration,
-          completionPercentage,
-          completed: true,
-        };
-        addWorkout(workout);
-        // Like a plan journal: offer to record today's body weight right
-        // after the session, so the weight chart stays up to date.
-        setIsWeightPromptOpen(true);
-      }
-      setActiveTemplate(null);
-      setIsWorkoutActive(false);
-    }
-  };
-
-  if (activeTemplate) {
-    return (
-      <ActiveWorkout
-        name={activeTemplate.name}
-        exercises={activeTemplate.exercises}
-        onComplete={handleCompleteWorkout}
-      />
-    );
-  }
-
-  // Sort workouts by date (newest first)
-  const sortedWorkouts = [...workouts].sort((a, b) => 
-    new Date(b.date).getTime() - new Date(a.date).getTime()
-  );
+  const openWorkout = workouts.find((w) => w.id === openWorkoutId) ?? null;
+  const thisMonth = workouts.filter((w) => {
+    const d = new Date(w.date);
+    const now = new Date();
+    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+  }).length;
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-white">Workouts</h1>
-        <div className="flex space-x-3">
-          <button
-            onClick={() => setIsCreateModalOpen(true)}
-            className="btn-primary"
-          >
-            <Plus className="h-4 w-4" />
-            Create Routine
-          </button>
-        </div>
-      </div>
-
-      <div className="grid md:grid-cols-2 gap-6">
-        <section className="card p-6">
-          <h2 className="text-lg font-semibold tracking-tight text-gray-900 dark:text-white mb-4">
-            Templates
-          </h2>
-          {templates.length > 0 ? (
-            <div className="space-y-3">
-              {templates.map((template) => (
-                <div
-                  key={template.id}
-                  className="rounded-xl border border-gray-200/70 p-4 transition-colors hover:border-gray-300 dark:border-white/[0.07] dark:hover:border-white/[0.14]"
-                >
-                  <div className="flex items-center justify-between gap-3 mb-1.5">
-                    <h3 className="font-medium text-gray-900 dark:text-white truncate">
-                      {template.name}
-                    </h3>
-                    <div className="flex flex-shrink-0 gap-1">
-                      <button
-                        onClick={() => handleStartWorkout(template)}
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-indigo-600 transition-colors hover:bg-indigo-50 dark:text-indigo-400 dark:hover:bg-indigo-500/10"
-                        title="Start Workout"
-                      >
-                        <Play className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() => setEditingTemplate(template)}
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200"
-                        title="Edit Template"
-                      >
-                        <Edit className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteClick(template)}
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-red-50 hover:text-red-600 dark:text-gray-400 dark:hover:bg-red-500/10 dark:hover:text-red-400"
-                        title="Delete Template"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </div>
-                  <div className="text-sm text-gray-500 dark:text-gray-400">
-                    <p>{template.exercises.length} exercises × {template.numberOfSets || 1} sets</p>
-                    <p>Total: {template.exercises.length * (template.numberOfSets || 1)} exercises</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="py-8 text-center">
-              <span className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-gray-100 text-gray-400 dark:bg-gray-800 dark:text-gray-500">
-                <ClipboardList className="h-6 w-6" />
-              </span>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                No templates yet. Create one to get started!
-              </p>
-            </div>
-          )}
-        </section>
-
-        <section className="card p-6">
-          <h2 className="text-lg font-semibold tracking-tight text-gray-900 dark:text-white mb-4">
-            History
-          </h2>
-          {workouts.length > 0 ? (
-            <div className="space-y-3 max-h-80 overflow-y-auto pr-1 scrollbar-thin">
-              {sortedWorkouts.map((workout) => (
-                <div
-                  key={workout.id}
-                  className="rounded-xl border border-gray-200/70 p-4 dark:border-white/[0.07]"
-                >
-                  <div className="flex items-center justify-between gap-3 mb-1.5">
-                    <h3 className="font-medium text-gray-900 dark:text-white truncate">
-                      {workout.name}
-                    </h3>
-                    <div className="flex flex-shrink-0 items-center text-sm text-gray-500 dark:text-gray-400">
-                      <Calendar className="h-4 w-4 mr-1" />
-                      {new Date(workout.date).toLocaleDateString()}
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between text-sm text-gray-500 dark:text-gray-400">
-                    <div className="flex items-center">
-                      <Clock className="h-4 w-4 mr-1" />
-                      {formatTime(workout.duration)}
-                    </div>
-                    <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-300">
-                      {Math.round(workout.completionPercentage)}% completed
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="py-8 text-center">
-              <span className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-gray-100 text-gray-400 dark:bg-gray-800 dark:text-gray-500">
-                <HistoryIcon className="h-6 w-6" />
-              </span>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                No workout history yet. Start your first workout!
-              </p>
-            </div>
-          )}
-        </section>
-      </div>
-
-      <CreateRoutineModal
-        isOpen={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
+    <div>
+      <PageTitle
+        eyebrow={tab === 'routines' ? tp('workouts.routineCount', templates.length) : tp('workouts.thisMonth', thisMonth)}
+        title={t('nav.workouts')}
+        actions={
+          <IconButton label={t('workouts.newRoutine')} onClick={() => setEditor({})}>
+            <Plus className="h-5 w-5" strokeWidth={1.75} />
+          </IconButton>
+        }
       />
-
-      <LogWeightModal
-        isOpen={isWeightPromptOpen}
-        onClose={() => setIsWeightPromptOpen(false)}
-        title="Nice work! Log today's weight?"
-        subtitle="Optional — keeps your weight trend on the Progress page up to date."
-      />
-
-      {editingTemplate && (
-        <EditTemplateModal
-          template={editingTemplate}
-          isOpen={true}
-          onClose={() => setEditingTemplate(null)}
+      <div className="mt-3">
+        <Tabs
+          value={tab}
+          onChange={setTab}
+          options={[
+            { value: 'routines', label: t('workouts.routines') },
+            { value: 'history', label: t('workouts.history') },
+          ]}
         />
+      </div>
+
+      {tab === 'routines' ? (
+        templates.length === 0 ? (
+          <div className="py-14 text-center">
+            <span className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-gray-100 text-gray-400 dark:bg-white/[0.06] dark:text-gray-500">
+              <ClipboardList className="h-6 w-6" />
+            </span>
+            <p className="text-[15px] font-medium text-gray-900 dark:text-white">{t('workouts.emptyTitle')}</p>
+            <p className="mx-auto mt-1 max-w-xs text-[14px] text-gray-500 dark:text-gray-400">{t('workouts.emptyBody')}</p>
+            <button onClick={() => setEditor({})} className="pill-primary mt-5">
+              <Plus className="h-4 w-4" />
+              {t('workouts.newRoutine')}
+            </button>
+          </div>
+        ) : (
+          <div>
+            {templates.map((template) => {
+              const isOpen = expanded === template.id;
+              const last = latestWorkout(workoutsForTemplate(template, workouts));
+              const sets = template.numberOfSets || 1;
+              const noteCount = (routineBookmarks[template.id] ?? []).length;
+              const metaParts = [t('workouts.exercisesTimesSets', { ex: template.exercises.length, sets })];
+              if (last) {
+                metaParts.push(t('workouts.lastDone', { when: date(last.date, { weekday: 'short', day: 'numeric', month: 'short' }) }));
+                metaParts.push(`${Math.round(last.completionPercentage)}%`);
+              } else {
+                metaParts.push(t('workouts.neverDone'));
+              }
+              return (
+                <div key={template.id} className="border-b hairline py-4">
+                  <button
+                    onClick={() => setExpanded(isOpen ? null : template.id)}
+                    aria-expanded={isOpen}
+                    className="flex w-full items-start justify-between gap-3 text-left"
+                  >
+                    <div className="min-w-0">
+                      <p className="text-[17px] font-semibold text-gray-900 dark:text-white">{template.name}</p>
+                      <p className="text-[13px] text-gray-500 dark:text-gray-400">{metaParts.join(' · ')}</p>
+                    </div>
+                    {isOpen ? (
+                      <ChevronUp className="mt-0.5 h-5 w-5 flex-shrink-0 text-gray-400" />
+                    ) : (
+                      <ChevronDown className="mt-0.5 h-5 w-5 flex-shrink-0 text-gray-400" />
+                    )}
+                  </button>
+                  {isOpen && (
+                    <>
+                      <ol className="mt-3 divide-y divide-gray-200/70 rounded-xl bg-gray-50 px-3 dark:divide-white/[0.06] dark:bg-gray-900">
+                        {template.exercises.map((exercise, i) => (
+                          <li key={exercise.id} className="flex items-center gap-3 py-2 text-[13px]">
+                            <span className="w-4 tabular-nums text-gray-400">{i + 1}</span>
+                            <span className="flex-1 truncate text-gray-800 dark:text-gray-200">{exercise.name}</span>
+                            <span className="tabular-nums text-gray-500 dark:text-gray-400">
+                              {exercise.type === 'time' ? clock(exercise.reps) : tp('session.reps', exercise.reps)}
+                            </span>
+                          </li>
+                        ))}
+                      </ol>
+                      <div className="mt-3 flex items-center gap-2">
+                        <button onClick={() => start(template)} className="pill-primary flex-1 py-2.5 text-[14px]">
+                          <Play className="h-4 w-4 fill-current" />
+                          {t('common.start')}
+                        </button>
+                        <RoundAction label={t('common.edit')} onClick={() => setEditor({ template })}>
+                          <Pencil className="h-4 w-4" strokeWidth={1.75} />
+                        </RoundAction>
+                        <RoundAction label={t('workouts.notes')} onClick={() => setNotesFor(template)} badge={noteCount}>
+                          <StickyNote className="h-4 w-4" strokeWidth={1.75} />
+                        </RoundAction>
+                        <RoundAction label={t('common.delete')} onClick={() => setDeleteFor(template)}>
+                          <Trash2 className="h-4 w-4" strokeWidth={1.75} />
+                        </RoundAction>
+                      </div>
+                    </>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )
+      ) : (
+        <HistoryCalendar workouts={workouts} onOpen={(w) => setOpenWorkoutId(w.id)} />
       )}
 
-      <ConfirmDeleteModal
-        isOpen={deleteConfirmModal.isOpen}
-        onClose={handleCancelDelete}
-        onConfirm={handleConfirmDelete}
-        message={`Do you really want to delete the workout "${deleteConfirmModal.templateName}"?`}
-      />
+      {active && <ActiveWorkout template={active} onFinish={(result) => finish(active, result)} />}
+
+      <RoutineEditor open={editor !== null} onClose={() => setEditor(null)} template={editor?.template} />
+      <RoutineNotes template={notesFor} onClose={() => setNotesFor(null)} onStart={start} />
+      <PastWorkout workout={openWorkout} onClose={() => setOpenWorkoutId(null)} />
+
+      <Dialog
+        open={deleteFor !== null}
+        onClose={() => setDeleteFor(null)}
+        title={t('workouts.deleteTitle')}
+        actions={
+          <div className="grid grid-cols-2 gap-2">
+            <button onClick={() => setDeleteFor(null)} className="pill-secondary py-2.5">
+              {t('common.cancel')}
+            </button>
+            <button
+              onClick={() => {
+                if (deleteFor) {
+                  deleteTemplate(deleteFor.id);
+                  toast.success(t('workouts.deleted'));
+                }
+                setDeleteFor(null);
+              }}
+              className="pill-danger py-2.5"
+            >
+              {t('common.delete')}
+            </button>
+          </div>
+        }
+      >
+        {t('workouts.deleteBody', { name: deleteFor?.name ?? '' })}
+      </Dialog>
+
+      <LogWeightSheet open={weightPrompt} onClose={() => setWeightPrompt(false)} title={t('weight.promptTitle')} subtitle={t('weight.promptSubtitle')} />
     </div>
+  );
+}
+
+function RoundAction({ label, onClick, badge, children }: { label: string; onClick: () => void; badge?: number; children: ReactNode }) {
+  return (
+    <button
+      onClick={onClick}
+      aria-label={label}
+      title={label}
+      className="relative inline-flex h-10 w-10 items-center justify-center rounded-full border hairline text-gray-600 transition-colors hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-white/[0.06]"
+    >
+      {children}
+      {badge ? (
+        <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-indigo-600 px-1 text-[10px] font-semibold text-white dark:bg-indigo-500">
+          {badge}
+        </span>
+      ) : null}
+    </button>
   );
 }

@@ -1,20 +1,13 @@
-import { useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useMemo, useState, type ReactNode } from 'react';
+import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import {
-  Sparkles,
-  Dumbbell,
-  KeyRound,
-  Loader2,
-  TrendingUp,
-  TrendingDown,
-  Minus,
-  Wand2,
-  Save,
-  RefreshCw,
-} from 'lucide-react';
+import { Dumbbell, KeyRound, Loader2, RefreshCw, Settings2, Sparkles, Wand2 } from 'lucide-react';
 import { useWorkoutStore } from '../store/useWorkoutStore';
 import { AICoachOnboardingModal } from '../components/AICoachOnboardingModal';
+import { IconButton, PageTitle } from '../components/ui';
+import { useI18n } from '../i18n';
+import { useUnits } from '../utils/units';
+import { equipmentLabel } from '../utils/equipment';
 import {
   analyzeTraining,
   generateWorkout,
@@ -24,391 +17,271 @@ import {
   type GeneratedWorkout,
 } from '../lib/gemini';
 
-/** Minimal, safe markdown rendering (headings, bullets, bold) — no HTML injection. */
-function renderMarkdown(text: string) {
-  const lines = text.split('\n');
-  return lines.map((line, i) => {
+/** Minimal, safe markdown rendering (headings, bullets, numbered items, bold). */
+function renderMarkdown(text: string): ReactNode[] {
+  const inline = (s: string) =>
+    s.split(/(\*\*[^*]+\*\*)/g).map((part, j) =>
+      part.startsWith('**') && part.endsWith('**') ? (
+        <strong key={j} className="font-semibold text-gray-900 dark:text-white">
+          {part.slice(2, -2)}
+        </strong>
+      ) : (
+        <span key={j}>{part}</span>
+      )
+    );
+  return text.split('\n').map((line, i) => {
     const trimmed = line.trim();
     if (!trimmed) return <div key={i} className="h-2" />;
-
-    const inline = (s: string) =>
-      s.split(/(\*\*[^*]+\*\*)/g).map((part, j) =>
-        part.startsWith('**') && part.endsWith('**') ? (
-          <strong key={j} className="font-semibold text-gray-900 dark:text-white">
-            {part.slice(2, -2)}
-          </strong>
-        ) : (
-          <span key={j}>{part}</span>
-        )
-      );
-
     if (/^#{1,3}\s/.test(trimmed)) {
-      const content = trimmed.replace(/^#{1,3}\s/, '');
       return (
-        <h4 key={i} className="mt-3 mb-1 font-semibold text-gray-900 dark:text-white">
-          {inline(content)}
-        </h4>
+        <p key={i} className="mt-3 font-semibold text-gray-900 dark:text-white">
+          {inline(trimmed.replace(/^#{1,3}\s/, ''))}
+        </p>
       );
     }
-    if (/^[-*]\s/.test(trimmed)) {
+    const bullet = trimmed.match(/^([-*]|\d+[.)])\s+(.*)$/);
+    if (bullet) {
       return (
-        <li key={i} className="ml-5 list-disc text-gray-700 dark:text-gray-300">
-          {inline(trimmed.replace(/^[-*]\s/, ''))}
-        </li>
+        <div key={i} className="flex gap-3">
+          <span className="tabular-nums text-gray-400">{/^\d/.test(bullet[1]) ? bullet[1] : '•'}</span>
+          <span>{inline(bullet[2])}</span>
+        </div>
       );
     }
-    return (
-      <p key={i} className="text-gray-700 dark:text-gray-300">
-        {inline(trimmed)}
-      </p>
-    );
+    return <p key={i}>{inline(trimmed)}</p>;
   });
 }
 
 export function Coach() {
-  const {
-    userProfile,
-    equipment,
-    exerciseWeights,
-    templates,
-    workouts,
-    weightLog,
-    aiCoach,
-    aiOnboarded,
-    setAICoachConfig,
-    addTemplate,
-  } = useWorkoutStore();
+  const { t, tp, tx, lang, clock } = useI18n();
+  const { unit, format } = useUnits();
+  const navigate = useNavigate();
+  const { userProfile, equipment, exerciseWeights, templates, workouts, weightLog, aiCoach, aiOnboarded, setAICoachConfig, addTemplate } = useWorkoutStore();
 
   const [keyInput, setKeyInput] = useState('');
   const [onboardingOpen, setOnboardingOpen] = useState(false);
   const [analysis, setAnalysis] = useState<string | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
-  const [generating, setGenerating] = useState<CoachDirection | null>(null);
+  const [direction, setDirection] = useState<CoachDirection>('harder');
+  const [generating, setGenerating] = useState(false);
   const [generated, setGenerated] = useState<GeneratedWorkout | null>(null);
-  const [lastDirection, setLastDirection] = useState<CoachDirection | null>(null);
   const [customText, setCustomText] = useState('');
-  const [showCustom, setShowCustom] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
 
-  const hasKey = Boolean(aiCoach.apiKey);
-
+  const locale = { lang, unit };
   const context: CoachContext = useMemo(
     () => ({
       profile: userProfile,
       equipment,
       exerciseWeights,
       templates,
-      recentWorkouts: [...workouts].sort(
-        (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-      ),
+      recentWorkouts: [...workouts].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
       weightLog,
     }),
     [userProfile, equipment, exerciseWeights, templates, workouts, weightLog]
   );
 
-  const runAnalyze = async () => {
+  const analyze = async () => {
     setError(null);
     setGenerated(null);
     setSaved(false);
     setAnalyzing(true);
     try {
-      const result = await analyzeTraining(aiCoach.apiKey, aiCoach.model, context, aiCoach.thinkingLevel);
-      setAnalysis(result);
+      setAnalysis(await analyzeTraining(aiCoach.apiKey, aiCoach.model, context, aiCoach.thinkingLevel, locale));
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Analysis failed.');
+      setError(err instanceof Error ? err.message : t('coach.errors.analysis'));
     } finally {
       setAnalyzing(false);
     }
   };
 
-  const runGenerate = async (direction: CoachDirection, custom?: string) => {
+  const generate = async (dir: CoachDirection) => {
     setError(null);
     setSaved(false);
-    setGenerating(direction);
-    setLastDirection(direction);
+    setDirection(dir);
+    setGenerating(true);
     try {
-      const result = await generateWorkout(
-        aiCoach.apiKey,
-        aiCoach.model,
-        context,
-        direction,
-        custom,
-        aiCoach.thinkingLevel
-      );
-      setGenerated(result);
+      setGenerated(await generateWorkout(aiCoach.apiKey, aiCoach.model, context, dir, dir === 'custom' ? customText.trim() : undefined, aiCoach.thinkingLevel, locale));
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Generation failed.');
+      setError(err instanceof Error ? err.message : t('coach.errors.generation'));
     } finally {
-      setGenerating(null);
+      setGenerating(false);
     }
   };
 
-  const handleSaveTemplate = () => {
+  const saveTemplate = () => {
     if (!generated) return;
-    addTemplate(toTemplate(generated));
+    addTemplate(toTemplate(generated, (kg) => format(kg)));
     setSaved(true);
-    toast.success('Workout saved to your templates');
+    toast.success(t('coach.savedToast'));
   };
 
-  // --- No API key yet ---
-  if (!hasKey) {
+  const equipmentSummary = equipment.length
+    ? equipment
+        .map((e) => `${equipmentLabel(tx, e.type)}${e.maxWeight ? ` ≤ ${format(e.maxWeight, 0)}` : ''}`)
+        .join(' · ')
+    : t('coach.noEquipment');
+
+  const header = (
+    <PageTitle
+      eyebrow={t('coach.eyebrow')}
+      title={t('coach.title')}
+      actions={
+        <IconButton label={t('nav.settings')} onClick={() => navigate('/settings')}>
+          <Settings2 className="h-5 w-5" strokeWidth={1.75} />
+        </IconButton>
+      }
+    />
+  );
+
+  if (!aiCoach.apiKey) {
     return (
-      <div className="space-y-6">
-        <Header />
-        <div className="card p-6 space-y-4">
-          <div className="flex items-center space-x-3">
-            <KeyRound className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
-            <h2 className="text-lg font-semibold tracking-tight text-gray-900 dark:text-white">Connect Gemini</h2>
-          </div>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            The AI Coach uses Google Gemini. Paste your own API key — it's stored only on this device.
-            Get one free at{' '}
-            <a
-              href="https://aistudio.google.com/apikey"
-              target="_blank"
-              rel="noreferrer"
-              className="text-indigo-600 dark:text-indigo-400 underline"
-            >
+      <div>
+        {header}
+        <section className="mt-4 border-t hairline pt-4">
+          <p className="flex items-center gap-2 text-[15px] font-semibold text-gray-900 dark:text-white">
+            <KeyRound className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+            {t('coach.connectTitle')}
+          </p>
+          <p className="mt-1 text-[14px] leading-relaxed text-gray-500 dark:text-gray-400">
+            {t('coach.connectBody')}{' '}
+            <a href="https://aistudio.google.com/apikey" target="_blank" rel="noreferrer" className="text-indigo-600 underline dark:text-indigo-400">
               aistudio.google.com/apikey
             </a>
-            .
           </p>
-          <div className="flex flex-col sm:flex-row gap-2">
-            <input
-              type="password"
-              value={keyInput}
-              onChange={(e) => setKeyInput(e.target.value)}
-              placeholder="AIza..."
-              className="input flex-1"
-            />
+          <div className="mt-4 flex gap-2">
+            <input type="password" value={keyInput} onChange={(e) => setKeyInput(e.target.value)} placeholder="AIza…" aria-label={t('settings.geminiKey')} className="input flex-1 text-[16px]" />
             <button
               onClick={() => {
                 setAICoachConfig({ apiKey: keyInput.trim() });
                 setKeyInput('');
-                toast.success('Gemini key saved');
+                toast.success(t('coach.keySaved'));
               }}
               disabled={!keyInput.trim()}
-              className="btn-primary"
+              className="pill-primary"
             >
-              Save key
+              {t('coach.saveKey')}
             </button>
           </div>
-          <p className="text-xs text-gray-400">
-            You can also manage this later in <Link to="/settings" className="underline">Settings</Link>.
-          </p>
-        </div>
+        </section>
       </div>
     );
   }
 
+  const directions: { value: CoachDirection; label: string }[] = [
+    { value: 'harder', label: t('coach.harder') },
+    { value: 'easier', label: t('coach.easier') },
+    { value: 'maintain', label: t('coach.maintain') },
+  ];
+
   return (
-    <div className="space-y-6">
-      <Header />
+    <div>
+      {header}
+      <button onClick={() => setOnboardingOpen(true)} className="mt-1 flex items-center gap-2 text-left text-[12px] text-gray-500 dark:text-gray-400">
+        <Dumbbell className="h-3.5 w-3.5 flex-shrink-0" strokeWidth={1.75} />
+        <span>
+          {aiOnboarded ? equipmentSummary : t('coach.setupPrompt')}{' '}
+          <span className="font-medium text-indigo-600 dark:text-indigo-400">{aiOnboarded ? t('common.edit') : t('coach.setUp')}</span>
+        </span>
+      </button>
 
-      {/* Equipment / weights status */}
-      <div className="card p-4 flex items-center justify-between">
-        <div className="flex items-center space-x-3">
-          <Dumbbell className="h-5 w-5 text-gray-600 dark:text-gray-400" />
-          <div>
-            <p className="text-sm font-medium text-gray-900 dark:text-white">Equipment & weights</p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">
-              {aiOnboarded
-                ? `${equipment.length} item${equipment.length !== 1 ? 's' : ''}, ${
-                    Object.keys(exerciseWeights).length
-                  } weight${Object.keys(exerciseWeights).length !== 1 ? 's' : ''} set`
-                : 'Not set up yet'}
-            </p>
-          </div>
+      <section className="mt-4 border-t hairline pt-4">
+        <div className="flex items-center justify-between gap-3">
+          <p className="cap">{t('coach.analysis')}</p>
+          {analysis && (
+            <button onClick={analyze} disabled={analyzing} className="text-[13px] font-medium text-indigo-600 disabled:opacity-50 dark:text-indigo-400">
+              {t('coach.again')}
+            </button>
+          )}
         </div>
-        <button
-          onClick={() => setOnboardingOpen(true)}
-          className="link"
-        >
-          {aiOnboarded ? 'Edit' : 'Set up'}
-        </button>
-      </div>
-
-      {/* Analyze */}
-      <div className="card p-6 space-y-4">
-        {!aiOnboarded && (
-          <div className="rounded-xl border border-amber-200/70 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-400/20 dark:bg-amber-500/10 dark:text-amber-300">
-            Tip: set up your equipment and current weights first so suggestions are realistic.
-          </div>
+        {analysis ? (
+          <div className="mt-2 space-y-1.5 text-[14px] leading-snug text-gray-800 dark:text-gray-200">{renderMarkdown(analysis)}</div>
+        ) : (
+          <button onClick={analyze} disabled={analyzing} className="pill-dark mt-3 w-full">
+            {analyzing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+            {analyzing ? t('coach.analyzing') : t('coach.analyze')}
+          </button>
         )}
+      </section>
 
-        <button
-          onClick={runAnalyze}
-          disabled={analyzing}
-          className="btn-primary w-full py-3"
-        >
-          {analyzing ? <Loader2 className="h-5 w-5 animate-spin" /> : <Sparkles className="h-5 w-5" />}
-          <span>{analyzing ? 'Analyzing your training…' : 'Analyze my training'}</span>
-        </button>
-
-        {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
-
-        {analysis && (
-          <div className="rounded-xl bg-gray-50 dark:bg-gray-800/60 p-4 space-y-1 text-sm">
-            {renderMarkdown(analysis)}
-          </div>
-        )}
-
-        {/* Direction choices appear once we have an analysis */}
-        {analysis && (
-          <div className="space-y-3">
-            <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              Where do you want to take it next?
-            </p>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-              <DirectionButton
-                icon={<TrendingUp className="h-4 w-4" />}
-                label="Harder"
-                busy={generating === 'harder'}
-                onClick={() => runGenerate('harder')}
-              />
-              <DirectionButton
-                icon={<TrendingDown className="h-4 w-4" />}
-                label="Slight downgrade"
-                busy={generating === 'easier'}
-                onClick={() => runGenerate('easier')}
-              />
-              <DirectionButton
-                icon={<Minus className="h-4 w-4" />}
-                label="Maintain"
-                busy={generating === 'maintain'}
-                onClick={() => runGenerate('maintain')}
-              />
-            </div>
-
-            {!showCustom ? (
+      {analysis && (
+        <section className="mt-5 border-t hairline pt-4">
+          <p className="cap">{t('coach.nextWorkout')}</p>
+          <div className="mt-2 grid grid-cols-3 overflow-hidden rounded-xl border hairline text-[13px] font-medium" role="radiogroup">
+            {directions.map((d, i) => (
               <button
-                onClick={() => setShowCustom(true)}
-                className="link flex items-center gap-1"
+                key={d.value}
+                role="radio"
+                aria-checked={direction === d.value && generated !== null}
+                onClick={() => generate(d.value)}
+                disabled={generating}
+                className={`py-2 transition-colors ${i ? 'border-l hairline' : ''} ${
+                  direction === d.value && (generating || generated)
+                    ? 'bg-indigo-600 text-white dark:bg-indigo-500'
+                    : 'text-gray-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-white/[0.04]'
+                }`}
               >
-                <Wand2 className="h-4 w-4" /> Something custom…
+                {generating && direction === d.value ? <Loader2 className="mx-auto h-4 w-4 animate-spin" /> : d.label}
               </button>
-            ) : (
-              <div className="flex flex-col sm:flex-row gap-2">
-                <input
-                  value={customText}
-                  onChange={(e) => setCustomText(e.target.value)}
-                  placeholder="e.g. focus on upper body, 30 min max, no jumping"
-                  className="input flex-1"
-                />
-                <button
-                  onClick={() => runGenerate('custom', customText.trim())}
-                  disabled={!customText.trim() || generating === 'custom'}
-                  className="btn-primary"
-                >
-                  {generating === 'custom' ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Wand2 className="h-4 w-4" />
-                  )}
-                  Generate
-                </button>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Generated workout */}
-      {generated && (
-        <div className="card p-6 space-y-4">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <h3 className="text-lg font-semibold tracking-tight text-gray-900 dark:text-white">{generated.name}</h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400">{generated.summary}</p>
-            </div>
-            {lastDirection && (
-              <button
-                onClick={() => runGenerate(lastDirection, customText.trim() || undefined)}
-                disabled={generating !== null}
-                title="Regenerate"
-                className="icon-btn flex-shrink-0"
-              >
-                <RefreshCw className={`h-4 w-4 ${generating ? 'animate-spin' : ''}`} />
-              </button>
-            )}
-          </div>
-
-          <div className="text-xs text-gray-500 dark:text-gray-400">
-            {generated.numberOfSets} sets per exercise
-          </div>
-
-          <div className="divide-y dark:divide-gray-700">
-            {generated.exercises.map((e, i) => (
-              <div key={i} className="py-3 flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-sm font-medium text-gray-900 dark:text-white">{e.name}</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
-                    {generated.numberOfSets} × {e.type === 'time' ? `${e.reps}s` : `${e.reps} reps`}
-                    {e.targetMuscles?.length ? ` · ${e.targetMuscles.join(', ')}` : ''}
-                  </p>
-                  {e.description && (
-                    <p className="text-xs text-gray-400 mt-0.5">{e.description}</p>
-                  )}
-                </div>
-                {typeof e.suggestedWeightKg === 'number' && e.suggestedWeightKg > 0 && (
-                  <span className="flex-shrink-0 text-sm font-medium text-indigo-600 dark:text-indigo-400">
-                    {e.suggestedWeightKg} kg
-                  </span>
-                )}
-              </div>
             ))}
           </div>
+          <div className="mt-2 flex gap-2">
+            <input
+              value={customText}
+              onChange={(e) => setCustomText(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && customText.trim() && generate('custom')}
+              placeholder={t('coach.customPlaceholder')}
+              aria-label={t('coach.custom')}
+              className="input flex-1 text-[15px]"
+            />
+            <button onClick={() => generate('custom')} disabled={!customText.trim() || generating} aria-label={t('coach.generate')} className="pill-secondary px-4">
+              {generating && direction === 'custom' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />}
+            </button>
+          </div>
 
-          <button
-            onClick={handleSaveTemplate}
-            disabled={saved}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm shadow-emerald-600/20 transition-colors hover:bg-emerald-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 dark:focus-visible:ring-offset-gray-950"
-          >
-            <Save className="h-4 w-4" />
-            {saved ? 'Saved to templates' : 'Save as template'}
-          </button>
-        </div>
+          {generated && (
+            <div className="mt-5">
+              <div className="flex items-baseline justify-between gap-3">
+                <p className="text-[18px] font-semibold text-gray-900 dark:text-white">{generated.name}</p>
+                <span className="flex-shrink-0 text-[12px] text-gray-500 dark:text-gray-400">{tp('coach.setsEach', generated.numberOfSets)}</span>
+              </div>
+              {generated.summary && <p className="mt-1 text-[13px] leading-snug text-gray-500 dark:text-gray-400">{generated.summary}</p>}
+              <div className="mt-2">
+                {generated.exercises.map((e, i) => (
+                  <div key={i} className="border-b border-gray-100 py-2.5 dark:border-white/[0.06]">
+                    <div className="grid grid-cols-[1fr_56px_64px] items-baseline text-[14px]">
+                      <span className="text-gray-900 dark:text-white">{e.name}</span>
+                      <span className="tabular-nums text-gray-500 dark:text-gray-400">× {e.type === 'time' ? clock(e.reps) : e.reps}</span>
+                      <span
+                        className={`text-right font-semibold tabular-nums ${
+                          e.suggestedWeightKg ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-300 dark:text-gray-600'
+                        }`}
+                      >
+                        {e.suggestedWeightKg ? format(e.suggestedWeightKg) : '—'}
+                      </span>
+                    </div>
+                    {e.description && <p className="mt-0.5 text-[12px] text-gray-500 dark:text-gray-400">{e.description}</p>}
+                  </div>
+                ))}
+              </div>
+              <div className="mt-4 flex gap-2">
+                <button onClick={saveTemplate} disabled={saved} className="pill-dark flex-1">
+                  {saved ? t('coach.saved') : t('coach.saveTemplate')}
+                </button>
+                <button onClick={() => generate(direction)} disabled={generating} className="pill-secondary">
+                  <RefreshCw className={`h-4 w-4 ${generating ? 'animate-spin' : ''}`} strokeWidth={1.75} />
+                  {t('coach.again')}
+                </button>
+              </div>
+            </div>
+          )}
+        </section>
       )}
+
+      {error && <p className="mt-4 rounded-2xl bg-red-50 p-4 text-[14px] text-red-700 dark:bg-red-500/10 dark:text-red-300">{error}</p>}
 
       <AICoachOnboardingModal isOpen={onboardingOpen} onClose={() => setOnboardingOpen(false)} />
     </div>
-  );
-}
-
-function Header() {
-  return (
-    <div className="flex items-center space-x-3">
-      <span className="icon-chip h-11 w-11 rounded-2xl"><Sparkles className="h-5 w-5" /></span>
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-white">AI Coach</h1>
-        <p className="text-sm text-gray-500 dark:text-gray-400">
-          Personalized analysis and workouts powered by Gemini.
-        </p>
-      </div>
-    </div>
-  );
-}
-
-function DirectionButton({
-  icon,
-  label,
-  busy,
-  onClick,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  busy: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      disabled={busy}
-      className="flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm font-medium text-gray-700 shadow-sm shadow-gray-950/[0.03] transition-colors hover:border-indigo-400 hover:text-indigo-600 disabled:pointer-events-none disabled:opacity-50 dark:border-white/10 dark:bg-gray-900 dark:text-gray-200 dark:shadow-none dark:hover:border-indigo-400/50 dark:hover:text-indigo-300"
-    >
-      {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : icon}
-      {label}
-    </button>
   );
 }

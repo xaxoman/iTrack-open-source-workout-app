@@ -48,10 +48,12 @@ No ads, no trackers, no account required — your training data stays on your de
 | | |
 | --- | --- |
 | 🏋️ **Routine templates** | Reusable routines with sets, reps, timed holds, target muscles and per-exercise notes. Reorder by drag & drop. |
-| ⏱️ **Focused session player** | Live workout timer, progress bar, per-set ticks and a built-in rest countdown. The screen stays awake while you train. |
+| ⏱️ **Focused session player** | A checklist grouped by set, a large demo video on the current exercise, timed holds and a rest countdown. Rest sounds ship with the app, so they work offline. The screen stays awake while you train. |
+| 🗓️ **History calendar** | Every session on a month calendar. Open one to see what you did, fix its date, duration or ticked exercises, or delete it — stats update right away. |
 | 📈 **Progress that means something** | Monthly volume, streaks, average completion, weekly and monthly trends — all computed from your own history. |
 | 📋 **Training plan** | Latest vs. record completion for every routine, muscle coverage at a glance, plus notes and video bookmarks per routine. |
-| ⚖️ **Body weight log** | One entry a day, charted over time, with the delta against your last measurement. |
+| ⚖️ **Body weight log** | One entry a day, charted over time, with the delta against your last measurement — in kg or lb. |
+| 🌍 **English & Italiano** | The whole app, dates and numbers follow your language. Translations are welcome! |
 | 🔔 **Workout reminders** | Local notifications on the days and at the time you pick. |
 | ✨ **Optional AI coach** | Bring your own Gemini key to get your training analysed and a next workout suggested around the equipment you own. |
 | 🔒 **Local-first by default** | Everything lives on-device as plain JSON. Export and import it whenever you like. |

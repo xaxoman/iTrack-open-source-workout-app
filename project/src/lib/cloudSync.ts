@@ -2,6 +2,8 @@ import { supabase, USER_DATA_TABLE } from './supabase';
 import { useWorkoutStore } from '../store/useWorkoutStore';
 import type { NotificationSettings, UserProfile } from '../store/useWorkoutStore';
 import type { Workout, WorkoutTemplate, EquipmentItem, WeightEntry, RoutineBookmark } from '../types/workout';
+import type { WeightUnit } from '../utils/units';
+import type { RestSound } from '../utils/sound';
 
 /**
  * The shape of the app data we persist to the cloud. It mirrors exactly what
@@ -20,6 +22,9 @@ export interface SyncableData {
   equipment: EquipmentItem[];
   exerciseWeights: Record<string, number>;
   aiOnboarded: boolean;
+  weightUnit: WeightUnit;
+  restSound: RestSound;
+  restVibrate: boolean;
 }
 
 /** Read the syncable slice of the current store state. */
@@ -36,6 +41,9 @@ export function getSyncableData(): SyncableData {
     equipment: state.equipment,
     exerciseWeights: state.exerciseWeights,
     aiOnboarded: state.aiOnboarded,
+    weightUnit: state.weightUnit,
+    restSound: state.restSound,
+    restVibrate: state.restVibrate,
   };
 }
 

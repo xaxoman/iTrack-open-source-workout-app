@@ -7,6 +7,9 @@ export interface Exercise {
   videoUrl?: string;
   targetMuscles: string[];
   description?: string;
+  /** Which round of the routine this copy belongs to (1-based). Older workouts
+   *  encode it in the id (`<id>-set-N`) and name (`Name (Set N)`) instead. */
+  setNumber?: number;
 }
 
 export interface Set {
@@ -24,6 +27,11 @@ export interface Workout {
   duration: number;
   completionPercentage: number;
   completed: boolean;
+  /** Ids of the exercises ticked off during the session. Missing on workouts
+   *  logged before per-exercise tracking existed. */
+  completedExerciseIds?: string[];
+  /** The routine this session was started from, when known. */
+  templateId?: string;
 }
 
 export interface WorkoutTemplate {

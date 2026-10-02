@@ -1,9 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
-import { createPortal } from 'react-dom';
-import { X, Dumbbell, Plus, Trash2, Weight, Loader2, Sparkles } from 'lucide-react';
+import { Loader2, Plus, Sparkles, Trash2 } from 'lucide-react';
+import { EditorBar, FullScreen, Group, Switch } from './ui';
 import { useWorkoutStore } from '../store/useWorkoutStore';
 import { selectWeightableExercises } from '../lib/gemini';
+import { useI18n } from '../i18n';
+import { useUnits } from '../utils/units';
 import type { EquipmentItem } from '../types/workout';
+import { EQUIPMENT_PRESETS } from '../utils/equipment';
 
 interface Props {
   isOpen: boolean;
@@ -11,40 +14,23 @@ interface Props {
   onSaved?: () => void;
 }
 
-const EQUIPMENT_PRESETS: { type: string; weighted: boolean }[] = [
-  { type: 'Bodyweight', weighted: false },
-  { type: 'Dumbbells', weighted: true },
-  { type: 'Kettlebell', weighted: true },
-  { type: 'Barbell', weighted: true },
-  { type: 'Resistance bands', weighted: false },
-  { type: 'Pull-up bar', weighted: false },
-  { type: 'Bench', weighted: false },
-  { type: 'Cable machine', weighted: true },
-];
 
 interface PresetState {
   selected: boolean;
   maxWeight: string;
 }
 
+/** Equipment and current working weights the AI coach plans around. */
 export function AICoachOnboardingModal({ isOpen, onClose, onSaved }: Props) {
-  const {
-    templates,
-    equipment,
-    exerciseWeights,
-    aiCoach,
-    updateEquipment,
-    updateExerciseWeights,
-    setAiOnboarded,
-  } = useWorkoutStore();
+  const { t, tx } = useI18n();
+  const { unit, fromKg, toKg } = useUnits();
+  const { templates, equipment, exerciseWeights, aiCoach, updateEquipment, updateExerciseWeights, setAiOnboarded } = useWorkoutStore();
 
-  // Candidate exercises come ONLY from the user's current routines (templates),
-  // not from old logged sessions — so exercises from routines they no longer do
-  // don't show up. Names are cleaned of any "(Set N)" suffix and de-duplicated.
+  // Candidates come only from current routines, cleaned of "(Set N)" and de-duplicated.
   const candidateNames = useMemo(() => {
-    const seen = new Map<string, string>(); // lowercase -> original casing
-    templates.forEach((t) =>
-      t.exercises.forEach((e) => {
+    const seen = new Map<string, string>();
+    templates.forEach((tpl) =>
+      tpl.exercises.forEach((e) => {
         const name = e.name.replace(/\s*\(set\s*\d+\)\s*$/i, '').trim();
         if (name && !seen.has(name.toLowerCase())) seen.set(name.toLowerCase(), name);
       })
@@ -55,27 +41,24 @@ export function AICoachOnboardingModal({ isOpen, onClose, onSaved }: Props) {
   const [presets, setPresets] = useState<Record<string, PresetState>>({});
   const [customItems, setCustomItems] = useState<{ type: string; maxWeight: string }[]>([]);
   const [weights, setWeights] = useState<Record<string, string>>({});
-  // AI-filtered subset of candidateNames that can actually take a weight.
   const [weightable, setWeightable] = useState<string[] | null>(null);
   const [filtering, setFiltering] = useState(false);
   const [filterNote, setFilterNote] = useState<string | null>(null);
 
-  // Ask Gemini which exercises are meaningfully weightable when the modal opens.
+  // Ask Gemini which exercises can meaningfully take a weight.
   useEffect(() => {
     if (!isOpen) return;
     let cancelled = false;
-
     setFilterNote(null);
     if (candidateNames.length === 0) {
       setWeightable([]);
       return;
     }
     if (!aiCoach.apiKey) {
-      setWeightable(candidateNames); // no key — fall back to the full list
-      setFilterNote('Add a Gemini key to auto-filter to weightable exercises.');
+      setWeightable(candidateNames);
+      setFilterNote(t('onboarding.noKeyFilter'));
       return;
     }
-
     setFiltering(true);
     setWeightable(null);
     selectWeightableExercises(aiCoach.apiKey, aiCoach.model, candidateNames, aiCoach.thinkingLevel)
@@ -85,22 +68,22 @@ export function AICoachOnboardingModal({ isOpen, onClose, onSaved }: Props) {
       .catch(() => {
         if (!cancelled) {
           setWeightable(candidateNames);
-          setFilterNote('Could not auto-filter — showing all exercises.');
+          setFilterNote(t('onboarding.filterFailed'));
         }
       })
       .finally(() => {
         if (!cancelled) setFiltering(false);
       });
-
     return () => {
       cancelled = true;
     };
+    // t is stable per language.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, candidateNames, aiCoach.apiKey, aiCoach.model, aiCoach.thinkingLevel]);
 
+  // Prefill from stored equipment and weights (kg → display unit).
   useEffect(() => {
     if (!isOpen) return;
-
-    // Prefill presets + custom items from stored equipment.
     const presetTypes = new Set(EQUIPMENT_PRESETS.map((p) => p.type));
     const nextPresets: Record<string, PresetState> = {};
     EQUIPMENT_PRESETS.forEach((p) => {
@@ -108,58 +91,41 @@ export function AICoachOnboardingModal({ isOpen, onClose, onSaved }: Props) {
     });
     const nextCustom: { type: string; maxWeight: string }[] = [];
     equipment.forEach((item) => {
-      if (presetTypes.has(item.type)) {
-        nextPresets[item.type] = {
-          selected: true,
-          maxWeight: item.maxWeight ? String(item.maxWeight) : '',
-        };
-      } else {
-        nextCustom.push({ type: item.type, maxWeight: item.maxWeight ? String(item.maxWeight) : '' });
-      }
+      const max = item.maxWeight ? String(fromKg(item.maxWeight)) : '';
+      if (presetTypes.has(item.type)) nextPresets[item.type] = { selected: true, maxWeight: max };
+      else nextCustom.push({ type: item.type, maxWeight: max });
     });
     setPresets(nextPresets);
     setCustomItems(nextCustom);
-
     const nextWeights: Record<string, string> = {};
     candidateNames.forEach((name) => {
-      nextWeights[name] = exerciseWeights[name] != null ? String(exerciseWeights[name]) : '';
+      nextWeights[name] = exerciseWeights[name] != null ? String(fromKg(exerciseWeights[name])) : '';
     });
     setWeights(nextWeights);
+    // Re-prefill only when opened or the source data changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, equipment, exerciseWeights, candidateNames]);
 
-  if (!isOpen) return null;
+  const parseKg = (value: string) => {
+    const n = parseFloat(value.replace(',', '.'));
+    return !Number.isNaN(n) && n > 0 ? toKg(n) : undefined;
+  };
 
-  const togglePreset = (type: string) =>
-    setPresets((prev) => ({
-      ...prev,
-      [type]: { ...prev[type], selected: !prev[type]?.selected },
-    }));
-
-  const setPresetWeight = (type: string, value: string) =>
-    setPresets((prev) => ({ ...prev, [type]: { ...prev[type], maxWeight: value } }));
-
-  const handleSave = () => {
+  const save = () => {
     const items: EquipmentItem[] = [];
     EQUIPMENT_PRESETS.forEach((p) => {
       const st = presets[p.type];
-      if (st?.selected) {
-        const maxWeight = p.weighted && st.maxWeight ? parseFloat(st.maxWeight) : undefined;
-        items.push({ id: crypto.randomUUID(), type: p.type, maxWeight: maxWeight && maxWeight > 0 ? maxWeight : undefined });
-      }
+      if (st?.selected) items.push({ id: crypto.randomUUID(), type: p.type, maxWeight: p.weighted ? parseKg(st.maxWeight) : undefined });
     });
     customItems.forEach((c) => {
       const type = c.type.trim();
-      if (!type) return;
-      const maxWeight = c.maxWeight ? parseFloat(c.maxWeight) : undefined;
-      items.push({ id: crypto.randomUUID(), type, maxWeight: maxWeight && maxWeight > 0 ? maxWeight : undefined });
+      if (type) items.push({ id: crypto.randomUUID(), type, maxWeight: parseKg(c.maxWeight) });
     });
-
     const parsedWeights: Record<string, number> = {};
     Object.entries(weights).forEach(([name, val]) => {
-      const num = parseFloat(val);
-      if (!Number.isNaN(num) && num >= 0) parsedWeights[name] = num;
+      const kg = parseKg(val);
+      if (kg !== undefined) parsedWeights[name] = kg;
     });
-
     updateEquipment(items);
     updateExerciseWeights(parsedWeights);
     setAiOnboarded(true);
@@ -167,179 +133,107 @@ export function AICoachOnboardingModal({ isOpen, onClose, onSaved }: Props) {
     onClose();
   };
 
-  const inputClass = 'input';
+  const weightInput = (value: string, onChange: (v: string) => void, label: string) => (
+    <span className="flex items-center gap-1.5">
+      <input
+        type="number"
+        inputMode="decimal"
+        min="0"
+        step="0.5"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        aria-label={label}
+        placeholder="—"
+        className="w-20 rounded-lg bg-white px-2.5 py-1 text-right text-[15px] text-gray-900 ring-1 ring-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-800 dark:text-white dark:ring-white/10"
+      />
+      <span className="text-[13px] text-gray-400">{unit}</span>
+    </span>
+  );
 
-  return createPortal(
-    <div className="modal-overlay">
-      <div className="modal-panel max-w-lg max-h-[90vh] flex flex-col">
-        <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-white/[0.07]">
-          <div className="flex items-center space-x-2">
-            <Dumbbell className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
-            <h2 className="text-lg font-semibold tracking-tight text-gray-900 dark:text-white">Your equipment & weights</h2>
-          </div>
-          <button
-            onClick={onClose}
-            className="icon-btn"
-            aria-label="Close"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
+  return (
+    <FullScreen
+      open={isOpen}
+      onClose={onClose}
+      tone="grouped"
+      z="z-[75]"
+      header={<EditorBar title={t('onboarding.title')} onCancel={onClose} cancelLabel={t('common.cancel')} onSave={save} saveLabel={t('common.save')} />}
+    >
+      <div className="px-4">
+        <p className="mt-2 px-2 text-[14px] text-gray-500 dark:text-gray-400">{t('onboarding.intro')}</p>
 
-        <div className="p-6 space-y-6 overflow-y-auto">
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            The coach uses this to make realistic suggestions. You can update it anytime.
-          </p>
-
-          {/* Equipment */}
-          <div>
-            <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">
-              What equipment do you have?
-            </h3>
-            <div className="space-y-2">
-              {EQUIPMENT_PRESETS.map((p) => {
-                const st = presets[p.type] ?? { selected: false, maxWeight: '' };
-                return (
-                  <div
-                    key={p.type}
-                    className={`flex items-center gap-3 rounded-xl border p-3 transition-colors ${
-                      st.selected
-                        ? 'border-indigo-500 bg-indigo-50/70 dark:border-indigo-400/60 dark:bg-indigo-500/10'
-                        : 'border-gray-200 hover:border-gray-300 dark:border-white/[0.08] dark:hover:border-white/[0.16]'
-                    }`}
-                  >
-                    <label className="flex items-center gap-2 flex-1 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={st.selected}
-                        onChange={() => togglePreset(p.type)}
-                        className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-800"
-                      />
-                      <span className="text-sm text-gray-900 dark:text-white">{p.type}</span>
-                    </label>
-                    {p.weighted && st.selected && (
-                      <div className="flex items-center gap-1">
-                        <Weight className="h-4 w-4 text-gray-400" />
-                        <input
-                          type="number"
-                          min="0"
-                          step="0.5"
-                          value={st.maxWeight}
-                          onChange={(e) => setPresetWeight(p.type, e.target.value)}
-                          placeholder="max kg"
-                          className="input w-24 px-2 py-1 text-sm"
-                        />
-                      </div>
+        <Group label={t('onboarding.equipment')}>
+          {EQUIPMENT_PRESETS.map((p) => {
+            const st = presets[p.type] ?? { selected: false, maxWeight: '' };
+            return (
+              <div key={p.type} className="flex items-center justify-between gap-3 px-4 py-2.5">
+                <span className="text-[15px] text-gray-900 dark:text-white">{tx(`equipment.${p.key}`, p.type)}</span>
+                <span className="flex items-center gap-3">
+                  {p.weighted &&
+                    st.selected &&
+                    weightInput(
+                      st.maxWeight,
+                      (v) => setPresets((prev) => ({ ...prev, [p.type]: { ...prev[p.type], maxWeight: v } })),
+                      t('onboarding.maxWeight')
                     )}
-                  </div>
-                );
-              })}
+                  <Switch
+                    checked={st.selected}
+                    onChange={(on) => setPresets((prev) => ({ ...prev, [p.type]: { ...prev[p.type], selected: on } }))}
+                    label={tx(`equipment.${p.key}`, p.type)}
+                  />
+                </span>
+              </div>
+            );
+          })}
+          {customItems.map((c, i) => (
+            <div key={i} className="flex items-center gap-3 px-4 py-2.5">
+              <input
+                value={c.type}
+                onChange={(e) => setCustomItems((prev) => prev.map((it, idx) => (idx === i ? { ...it, type: e.target.value } : it)))}
+                placeholder={t('onboarding.otherPlaceholder')}
+                className="min-w-0 flex-1 bg-transparent text-[15px] text-gray-900 placeholder:text-gray-400 focus:outline-none dark:text-white"
+              />
+              {weightInput(c.maxWeight, (v) => setCustomItems((prev) => prev.map((it, idx) => (idx === i ? { ...it, maxWeight: v } : it))), t('onboarding.maxWeight'))}
+              <button
+                onClick={() => setCustomItems((prev) => prev.filter((_, idx) => idx !== i))}
+                aria-label={t('common.remove')}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-500/10"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
             </div>
+          ))}
+          <button
+            onClick={() => setCustomItems((prev) => [...prev, { type: '', maxWeight: '' }])}
+            className="flex w-full items-center gap-2 px-4 py-3 text-[15px] font-medium text-indigo-600 dark:text-indigo-400"
+          >
+            <Plus className="h-4 w-4" />
+            {t('onboarding.addOther')}
+          </button>
+        </Group>
 
-            {/* Custom equipment */}
-            {customItems.map((c, i) => (
-              <div key={i} className="flex items-center gap-2 mt-2">
-                <input
-                  value={c.type}
-                  onChange={(e) =>
-                    setCustomItems((prev) => prev.map((it, idx) => (idx === i ? { ...it, type: e.target.value } : it)))
-                  }
-                  placeholder="Other equipment"
-                  className={inputClass}
-                />
-                <input
-                  type="number"
-                  min="0"
-                  step="0.5"
-                  value={c.maxWeight}
-                  onChange={(e) =>
-                    setCustomItems((prev) =>
-                      prev.map((it, idx) => (idx === i ? { ...it, maxWeight: e.target.value } : it))
-                    )
-                  }
-                  placeholder="max kg"
-                  className="input w-28 px-2 py-2 text-sm"
-                />
-                <button
-                  onClick={() => setCustomItems((prev) => prev.filter((_, idx) => idx !== i))}
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-500/10"
-                  aria-label="Remove"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              </div>
-            ))}
-            <button
-              onClick={() => setCustomItems((prev) => [...prev, { type: '', maxWeight: '' }])}
-              className="link mt-2 flex items-center gap-1"
-            >
-              <Plus className="h-4 w-4" /> Add other equipment
-            </button>
-          </div>
-
-          {/* Current weights per exercise (AI-filtered to weightable moves) */}
-          <div>
-            <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-1">
-              Current working weight per exercise
-            </h3>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
-              The weight you currently use. Leave blank for bodyweight or unknown.
-              {filterNote && <span className="block mt-1 text-amber-600 dark:text-amber-400">{filterNote}</span>}
+        <Group label={t('onboarding.workingWeights')} footnote={filterNote ?? t('onboarding.workingWeightsHint')}>
+          {candidateNames.length === 0 ? (
+            <p className="px-4 py-3 text-[14px] text-gray-500 dark:text-gray-400">{t('onboarding.noExercises')}</p>
+          ) : filtering || weightable === null ? (
+            <p className="flex items-center gap-2 px-4 py-3 text-[14px] text-gray-500 dark:text-gray-400">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <Sparkles className="h-4 w-4 text-indigo-500" />
+              {t('onboarding.filtering')}
             </p>
-
-            {candidateNames.length === 0 ? (
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                No exercises found yet — create a workout routine first and the coach will ask about it.
-              </p>
-            ) : filtering || weightable === null ? (
-              <div className="flex items-center gap-2 py-4 text-sm text-gray-500 dark:text-gray-400">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                <Sparkles className="h-4 w-4 text-indigo-500" />
-                Finding weightable exercises…
+          ) : weightable.length === 0 ? (
+            <p className="px-4 py-3 text-[14px] text-gray-500 dark:text-gray-400">{t('onboarding.noneWeightable')}</p>
+          ) : (
+            weightable.map((name) => (
+              <div key={name} className="flex items-center justify-between gap-3 px-4 py-2.5">
+                <span className="truncate text-[15px] text-gray-900 dark:text-white" title={name}>
+                  {name}
+                </span>
+                {weightInput(weights[name] ?? '', (v) => setWeights((prev) => ({ ...prev, [name]: v })), name)}
               </div>
-            ) : weightable.length === 0 ? (
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                None of your current exercises need a weight — they look like bodyweight or mobility work.
-              </p>
-            ) : (
-              <div className="space-y-2">
-                {weightable.map((name) => (
-                  <div key={name} className="flex items-center gap-3">
-                    <span className="flex-1 text-sm text-gray-900 dark:text-white truncate" title={name}>
-                      {name}
-                    </span>
-                    <input
-                      type="number"
-                      min="0"
-                      step="0.5"
-                      value={weights[name] ?? ''}
-                      onChange={(e) => setWeights((prev) => ({ ...prev, [name]: e.target.value }))}
-                      placeholder="kg"
-                      className="input w-24 px-2 py-1 text-sm"
-                    />
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className="flex justify-end space-x-3 p-6 border-t border-gray-100 dark:border-white/[0.07]">
-          <button
-            onClick={onClose}
-            className="btn-ghost"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleSave}
-            className="btn-primary"
-          >
-            Save
-          </button>
-        </div>
+            ))
+          )}
+        </Group>
       </div>
-    </div>,
-    document.body
+    </FullScreen>
   );
 }

@@ -1,127 +1,88 @@
-import React, { useState } from 'react';
-import { NavLink as RouterNavLink, Link, Outlet } from 'react-router-dom';
-import { useWorkoutStore } from '../store/useWorkoutStore';
-import { useAuthStore } from '../store/useAuthStore';
-import { AuthModal } from './AuthModal';
-import {
-  Home,
-  Dumbbell,
-  LineChart,
-  Settings,
-  Sun,
-  Moon,
-  User,
-  UserCircle2,
-  Sparkles
-} from 'lucide-react';
+import type { ReactNode } from 'react';
+import { NavLink, Outlet } from 'react-router-dom';
+import { Dumbbell, Home, LineChart, Settings, Sparkles } from 'lucide-react';
+import { useI18n } from '../i18n';
 
 export function Layout() {
-  const { darkMode, toggleDarkMode } = useWorkoutStore();
-  const user = useAuthStore((state) => state.user);
-  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const { t } = useI18n();
+
+  const tabs = [
+    { to: '/', icon: Home, label: t('nav.today') },
+    { to: '/workouts', icon: Dumbbell, label: t('nav.workouts') },
+    { to: '/progress', icon: LineChart, label: t('nav.progress') },
+    { to: '/settings', icon: Settings, label: t('nav.settings') },
+  ];
 
   return (
-    <div className={`min-h-screen ${darkMode ? 'dark bg-gray-950' : 'bg-gray-50'} transition-colors`}>
-      <nav className="fixed top-0 w-full z-50 pt-safe bg-white/85 dark:bg-gray-950/85 backdrop-blur-xl border-b border-gray-200/70 dark:border-white/[0.07]">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-8">
-              <Link to="/" className="flex items-center gap-2.5">
-                <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-indigo-600 shadow-sm shadow-indigo-600/30">
-                  <Dumbbell className="h-[18px] w-[18px] text-white" />
-                </span>
-                <span className="font-semibold tracking-tight text-gray-900 dark:text-white">iTrack</span>
-              </Link>
-              <div className="hidden md:flex items-center gap-1">
-                <NavLink to="/" icon={<Home className="h-4 w-4" />} text="Home" />
-                <NavLink to="/workouts" icon={<Dumbbell className="h-4 w-4" />} text="Workouts" />
-                <NavLink to="/progress" icon={<LineChart className="h-4 w-4" />} text="Progress" />
-                <NavLink to="/coach" icon={<Sparkles className="h-4 w-4" />} text="Coach" />
-                <NavLink to="/settings" icon={<Settings className="h-4 w-4" />} text="Settings" />
-              </div>
-            </div>
-            <div className="flex items-center gap-1">
-              <button
-                onClick={() => setIsAuthModalOpen(true)}
-                className="icon-btn relative"
-                title={user ? `Signed in as ${user.email}` : 'Sign in / Sign up'}
-                aria-label={user ? 'Account' : 'Sign in or sign up'}
-              >
-                {user ? (
-                  <UserCircle2 className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
-                ) : (
-                  <User className="h-5 w-5" />
-                )}
-                {user && (
-                  <span className="absolute top-1.5 right-1.5 block h-2 w-2 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-gray-950" />
-                )}
-              </button>
-              <button
-                onClick={toggleDarkMode}
-                className="icon-btn"
-                aria-label="Toggle dark mode"
-              >
-                {darkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-              </button>
-            </div>
+    <div className="min-h-screen bg-white transition-colors dark:bg-gray-950">
+      {/* Wide screens: slim top bar. Coach sits here; on phones it opens from Today. */}
+      <nav className="sticky top-0 z-40 hidden border-b hairline bg-white/90 backdrop-blur dark:bg-gray-950/90 md:block">
+        <div className="mx-auto flex h-14 max-w-3xl items-center justify-between px-5">
+          <NavLink to="/" className="flex items-center gap-2">
+            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-600 text-white">
+              <Dumbbell className="h-4 w-4" />
+            </span>
+            <span className="font-semibold tracking-tight text-gray-900 dark:text-white">iTrack</span>
+          </NavLink>
+          <div className="flex items-center gap-1">
+            {[...tabs.slice(0, 3), { to: '/coach', icon: Sparkles, label: t('nav.coach') }, tabs[3]].map((tab) => (
+              <TopLink key={tab.to} to={tab.to}>
+                {tab.label}
+              </TopLink>
+            ))}
           </div>
         </div>
       </nav>
 
-      <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
-
-      {/* Increased top padding to account for the navbar */}
-      <main className="pt-28 md:pt-24 pb-28 md:pb-16 px-4 max-w-7xl mx-auto">
-        <Outlet />
+      <main className="mx-auto max-w-3xl px-5 pb-32 pt-safe md:pb-16">
+        <div className="pt-4 md:pt-8">
+          <Outlet />
+        </div>
       </main>
 
-      {/* Coach is deliberately not in the tab bar — it opens from the Home banner. */}
-      <nav className="fixed bottom-0 left-0 right-0 md:hidden z-40 bg-white/90 dark:bg-gray-950/90 backdrop-blur-xl border-t border-gray-200/70 dark:border-white/[0.07] pb-safe">
-        <div className="flex justify-around px-2 py-2">
-          <MobileNavLink to="/" icon={<Home className="h-5 w-5" />} label="Home" />
-          <MobileNavLink to="/workouts" icon={<Dumbbell className="h-5 w-5" />} label="Workouts" />
-          <MobileNavLink to="/progress" icon={<LineChart className="h-5 w-5" />} label="Progress" />
-          <MobileNavLink to="/settings" icon={<Settings className="h-5 w-5" />} label="Settings" />
+      {/* Phones: bottom tab bar with a hairline indicator on the active tab. */}
+      <nav className="fixed inset-x-0 bottom-0 z-40 border-t hairline bg-white/95 px-3 pb-safe backdrop-blur dark:bg-gray-950/95 md:hidden">
+        <div className="flex">
+          {tabs.map(({ to, icon: Icon, label }) => (
+            <NavLink
+              key={to}
+              to={to}
+              end={to === '/'}
+              className={({ isActive }) =>
+                `relative flex flex-1 flex-col items-center gap-1 pb-2 pt-3 text-[10.5px] font-medium transition-colors ${
+                  isActive ? 'text-gray-900 dark:text-white' : 'text-gray-400 hover:text-gray-700 dark:text-gray-500 dark:hover:text-gray-300'
+                }`
+              }
+            >
+              {({ isActive }) => (
+                <>
+                  {isActive && <span className="absolute top-0 h-[2px] w-8 rounded-full bg-indigo-600 dark:bg-indigo-400" />}
+                  <Icon className="h-[21px] w-[21px]" strokeWidth={isActive ? 2.1 : 1.75} />
+                  <span>{label}</span>
+                </>
+              )}
+            </NavLink>
+          ))}
         </div>
       </nav>
     </div>
   );
 }
 
-function NavLink({ to, icon, text }: { to: string; icon: React.ReactNode; text: string }) {
+function TopLink({ to, children }: { to: string; children: ReactNode }) {
   return (
-    <RouterNavLink
+    <NavLink
       to={to}
       end={to === '/'}
       className={({ isActive }) =>
-        `flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium transition-colors ${
+        `rounded-full px-3 py-1.5 text-[14px] font-medium transition-colors ${
           isActive
-            ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-300'
-            : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-800/70'
-        }`
-      }
-    >
-      {icon}
-      <span>{text}</span>
-    </RouterNavLink>
-  );
-}
-
-function MobileNavLink({ to, icon, label }: { to: string; icon: React.ReactNode; label: string }) {
-  return (
-    <RouterNavLink
-      to={to}
-      end={to === '/'}
-      className={({ isActive }) =>
-        `flex flex-col items-center gap-0.5 rounded-xl px-3 py-1.5 text-[11px] font-medium transition-colors ${
-          isActive
-            ? 'text-indigo-600 dark:text-indigo-400'
+            ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-950'
             : 'text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white'
         }`
       }
     >
-      {icon}
-      <span>{label}</span>
-    </RouterNavLink>
+      {children}
+    </NavLink>
   );
 }

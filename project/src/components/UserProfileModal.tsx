@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
-import { createPortal } from 'react-dom';
-import { X, User, Calculator } from 'lucide-react';
+import { Sheet, Segmented } from './ui';
 import type { UserProfile } from '../store/useWorkoutStore';
+import { useI18n } from '../i18n';
+import { useUnits } from '../utils/units';
 
 interface UserProfileModalProps {
   isOpen: boolean;
@@ -10,339 +11,172 @@ interface UserProfileModalProps {
   currentProfile?: UserProfile;
 }
 
-export function UserProfileModal({ 
-  isOpen, 
-  onClose, 
-  onSave, 
-  currentProfile 
-}: UserProfileModalProps) {
-  const [height, setHeight] = useState(currentProfile?.height?.toString() ?? '');
-  const [weight, setWeight] = useState(currentProfile?.weight?.toString() ?? '');
-  const [age, setAge] = useState(currentProfile?.age?.toString() ?? '');
-  const [gender, setGender] = useState<UserProfile['gender'] | ''>(currentProfile?.gender ?? '');
-  const [neckCm, setNeckCm] = useState(currentProfile?.neckCm?.toString() ?? '');
-  const [waistCm, setWaistCm] = useState(currentProfile?.waistCm?.toString() ?? '');
+export type BmiCategory = 'underweight' | 'normal' | 'overweight' | 'obese';
+export type BodyFatMethod = 'navy' | 'rfm' | 'bmi';
+
+export function bmiCategory(bmi: number): BmiCategory {
+  if (bmi < 18.5) return 'underweight';
+  if (bmi < 25) return 'normal';
+  if (bmi < 30) return 'overweight';
+  return 'obese';
+}
+
+/** Stored English labels (older profiles) → method key. */
+export function bodyFatMethodKey(method?: string): BodyFatMethod | null {
+  if (!method) return null;
+  if (/navy/i.test(method)) return 'navy';
+  if (/relative|rfm/i.test(method)) return 'rfm';
+  if (/bmi/i.test(method)) return 'bmi';
+  return null;
+}
+
+// Stored values stay in English for compatibility with existing data and the AI coach.
+const CATEGORY_LABEL: Record<BmiCategory, string> = {
+  underweight: 'Underweight',
+  normal: 'Normal weight',
+  overweight: 'Overweight',
+  obese: 'Obese',
+};
+const METHOD_LABEL: Record<BodyFatMethod, string> = {
+  navy: 'US Navy estimate',
+  rfm: 'Relative fat mass estimate',
+  bmi: 'BMI-based estimate',
+};
+
+function estimateBodyFat(heightCm: number, age: number, gender: UserProfile['gender'], bmi: number, waist?: number, neck?: number) {
+  if (waist && waist > 0) {
+    if (gender === 'MALE' && neck && neck > 0 && waist > neck) {
+      return { percentage: 495 / (1.0324 - 0.19077 * Math.log10(waist - neck) + 0.15456 * Math.log10(heightCm)) - 450, method: 'navy' as const };
+    }
+    const base = gender === 'MALE' ? 64 : 76;
+    return { percentage: base - 20 * (heightCm / waist), method: 'rfm' as const };
+  }
+  const sex = gender === 'MALE' ? 1 : 0;
+  return { percentage: 1.2 * bmi + 0.23 * age - 10.8 * sex - 5.4, method: 'bmi' as const };
+}
+
+/** Height, weight, age and measurements → BMI and an estimated body-fat %. */
+export function UserProfileModal({ isOpen, onClose, onSave, currentProfile }: UserProfileModalProps) {
+  const { t, number } = useI18n();
+  const { unit, fromKg, toKg } = useUnits();
+  const [height, setHeight] = useState('');
+  const [weight, setWeight] = useState('');
+  const [age, setAge] = useState('');
+  const [gender, setGender] = useState<UserProfile['gender']>('MALE');
+  const [neck, setNeck] = useState('');
+  const [waist, setWaist] = useState('');
 
   useEffect(() => {
-    if (!isOpen) {
-      return;
-    }
-
+    if (!isOpen) return;
     setHeight(currentProfile?.height?.toString() ?? '');
-    setWeight(currentProfile?.weight?.toString() ?? '');
+    setWeight(currentProfile?.weight ? String(fromKg(currentProfile.weight)) : '');
     setAge(currentProfile?.age?.toString() ?? '');
-    setGender(currentProfile?.gender ?? '');
-    setNeckCm(currentProfile?.neckCm?.toString() ?? '');
-    setWaistCm(currentProfile?.waistCm?.toString() ?? '');
-  }, [currentProfile, isOpen]);
+    setGender(currentProfile?.gender ?? 'MALE');
+    setNeck(currentProfile?.neckCm?.toString() ?? '');
+    setWaist(currentProfile?.waistCm?.toString() ?? '');
+    // Reset only when opened.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, currentProfile]);
 
-  if (!isOpen) return null;
+  const num = (v: string) => parseFloat(v.replace(',', '.'));
+  const h = num(height);
+  const wKg = weight ? toKg(num(weight)) : NaN;
+  const a = parseInt(age, 10);
+  const neckCm = neck ? num(neck) : undefined;
+  const waistCm = waist ? num(waist) : undefined;
+  const valid = h > 0 && wKg > 0 && a > 0;
+  const bmi = valid ? wKg / (h / 100) ** 2 : null;
+  const fat = bmi ? estimateBodyFat(h, a, gender, bmi, waistCm, neckCm) : null;
 
-  const calculateBMI = (heightCm: number, weightKg: number) => {
-    const heightM = heightCm / 100;
-    return weightKg / (heightM * heightM);
-  };
-
-  const getBMICategory = (bmi: number) => {
-    if (bmi < 18.5) return 'Underweight';
-    if (bmi < 25) return 'Normal weight';
-    if (bmi < 30) return 'Overweight';
-    return 'Obese';
-  };
-
-  const getBMIColor = (bmi: number) => {
-    if (bmi < 18.5) return 'text-blue-600 dark:text-blue-400';
-    if (bmi < 25) return 'text-green-600 dark:text-green-400';
-    if (bmi < 30) return 'text-yellow-600 dark:text-yellow-400';
-    return 'text-red-600 dark:text-red-400';
-  };
-
-  const calculateBodyFatPercentage = (
-    heightCm: number,
-    ageYears: number,
-    selectedGender: UserProfile['gender'],
-    bmi: number,
-    waistMeasurement?: number,
-    neckMeasurement?: number
-  ) => {
-    if (waistMeasurement && waistMeasurement > 0) {
-      if (selectedGender === 'MALE' && neckMeasurement && neckMeasurement > 0 && waistMeasurement > neckMeasurement) {
-        const estimate = 495 /
-          (1.0324 - 0.19077 * Math.log10(waistMeasurement - neckMeasurement) + 0.15456 * Math.log10(heightCm)) - 450;
-
-        return {
-          percentage: estimate,
-          method: 'US Navy estimate',
-        };
-      }
-
-      const rfmBase = selectedGender === 'MALE' ? 64 : 76;
-      const estimate = rfmBase - 20 * (heightCm / waistMeasurement);
-
-      return {
-        percentage: estimate,
-        method: 'Relative fat mass estimate',
-      };
-    }
-
-    const sexFactor = selectedGender === 'MALE' ? 1 : 0;
-    const estimate = 1.2 * bmi + 0.23 * ageYears - 10.8 * sexFactor - 5.4;
-
-    return {
-      percentage: estimate,
-      method: 'BMI-based estimate',
-    };
-  };
-
-  const parsedHeight = parseFloat(height);
-  const parsedWeight = parseFloat(weight);
-  const parsedAge = parseInt(age, 10);
-  const parsedNeckCm = neckCm ? parseFloat(neckCm) : undefined;
-  const parsedWaistCm = waistCm ? parseFloat(waistCm) : undefined;
-
-  const hasCoreInputs = parsedHeight > 0 && parsedWeight > 0 && parsedAge > 0 && gender;
-  const currentBMI = hasCoreInputs ? calculateBMI(parsedHeight, parsedWeight) : null;
-  const currentCategory = currentBMI ? getBMICategory(currentBMI) : null;
-  const bodyFatEstimate = currentBMI && gender
-    ? calculateBodyFatPercentage(parsedHeight, parsedAge, gender, currentBMI, parsedWaistCm, parsedNeckCm)
-    : null;
-
-  const handleSave = () => {
-    if (!hasCoreInputs || !gender || !currentBMI) return;
-    
+  const save = () => {
+    if (!valid || !bmi) return;
     onSave({
-      height: parsedHeight,
-      weight: parsedWeight,
-      age: parsedAge,
+      height: h,
+      weight: wKg,
+      age: a,
       gender,
-      neckCm: parsedNeckCm,
-      waistCm: parsedWaistCm,
-      bmi: currentBMI,
-      bmiCategory: getBMICategory(currentBMI),
-      bodyFatPercentage: bodyFatEstimate ? Math.max(0, Math.min(100, bodyFatEstimate.percentage)) : undefined,
-      bodyFatMethod: bodyFatEstimate?.method,
+      neckCm,
+      waistCm,
+      bmi,
+      bmiCategory: CATEGORY_LABEL[bmiCategory(bmi)],
+      bodyFatPercentage: fat ? Math.max(0, Math.min(100, fat.percentage)) : undefined,
+      bodyFatMethod: fat ? METHOD_LABEL[fat.method] : undefined,
     });
     onClose();
   };
 
-  const isValid = Boolean(hasCoreInputs);
-
-  return createPortal(
-    <div className="modal-overlay">
-      <div className="modal-panel max-w-lg max-h-[90vh] flex flex-col">
-        <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-white/[0.07]">
-          <div className="flex items-center space-x-2">
-            <User className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
-            <h2 className="text-lg font-semibold tracking-tight text-gray-900 dark:text-white">
-              Profile Information
-            </h2>
-          </div>
-          <button
-            onClick={onClose}
-            className="icon-btn"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-
-        <div className="p-6 space-y-6 overflow-y-auto">
-          {/* Height Input */}
-          <div>
-            <label className="label">
-              Height (cm)
-            </label>
-            <input
-              type="number"
-              value={height}
-              onChange={(e) => setHeight(e.target.value)}
-              placeholder="Enter your height in centimeters"
-              min="100"
-              max="250"
-              className="input"
-            />
-            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-              Example: 175 cm
-            </p>
-          </div>
-
-          {/* Weight Input */}
-          <div>
-            <label className="label">
-              Weight (kg)
-            </label>
-            <input
-              type="number"
-              value={weight}
-              onChange={(e) => setWeight(e.target.value)}
-              placeholder="Enter your weight in kilograms"
-              min="30"
-              max="200"
-              step="0.1"
-              className="input"
-            />
-            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-              Example: 70.5 kg
-            </p>
-          </div>
-
-          <div className="grid sm:grid-cols-2 gap-4">
-            <div>
-              <label className="label">
-                Gender
-              </label>
-              <select
-                value={gender}
-                onChange={(e) => setGender(e.target.value as UserProfile['gender'])}
-                className="input"
-              >
-                <option value="">Select gender</option>
-                <option value="MALE">Male</option>
-                <option value="FEMALE">Female</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="label">
-                Age
-              </label>
-              <input
-                type="number"
-                value={age}
-                onChange={(e) => setAge(e.target.value)}
-                placeholder="Enter your age"
-                min="10"
-                max="120"
-                className="input"
-              />
-            </div>
-          </div>
-
-          <div className="grid sm:grid-cols-2 gap-4">
-            <div>
-              <label className="label">
-                Neck (cm)
-              </label>
-              <input
-                type="number"
-                value={neckCm}
-                onChange={(e) => setNeckCm(e.target.value)}
-                placeholder="Optional"
-                min="20"
-                max="80"
-                step="0.1"
-                className="input"
-              />
-              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                Optional. Helps refine body fat estimation.
-              </p>
-            </div>
-
-            <div>
-              <label className="label">
-                Waist (cm)
-              </label>
-              <input
-                type="number"
-                value={waistCm}
-                onChange={(e) => setWaistCm(e.target.value)}
-                placeholder="Optional"
-                min="40"
-                max="200"
-                step="0.1"
-                className="input"
-              />
-              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                Optional. Enables body fat percentage estimation.
-              </p>
-            </div>
-          </div>
-
-          {/* BMI Calculation Display */}
-          {currentBMI && (
-            <div className="rounded-xl bg-gray-50 dark:bg-gray-800/60 p-4">
-              <div className="flex items-center space-x-2 mb-2">
-                <Calculator className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
-                <h3 className="text-sm font-medium text-gray-900 dark:text-white">
-                  BMI Calculation
-                </h3>
-              </div>
-              <div className="space-y-2">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600 dark:text-gray-400">BMI:</span>
-                  <span className={`text-lg font-semibold ${getBMIColor(currentBMI)}`}>
-                    {currentBMI.toFixed(1)}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600 dark:text-gray-400">Category:</span>
-                  <span className={`text-sm font-medium ${getBMIColor(currentBMI)}`}>
-                    {currentCategory}
-                  </span>
-                </div>
-                {bodyFatEstimate && (
-                  <>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600 dark:text-gray-400">Body Fat %:</span>
-                      <span className="text-lg font-semibold text-indigo-600 dark:text-indigo-400">
-                        {Math.max(0, Math.min(100, bodyFatEstimate.percentage)).toFixed(1)}%
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center gap-4">
-                      <span className="text-sm text-gray-600 dark:text-gray-400">Method:</span>
-                      <span className="text-sm font-medium text-gray-900 dark:text-white text-right">
-                        {bodyFatEstimate.method}
-                      </span>
-                    </div>
-                  </>
-                )}
-              </div>
-              
-              {/* BMI Scale Reference */}
-              <div className="mt-4 pt-4 border-t border-gray-200 dark:border-white/[0.08]">
-                <h4 className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  BMI Categories:
-                </h4>
-                <div className="space-y-1 text-xs">
-                  <div className="flex justify-between">
-                    <span className="text-blue-600 dark:text-blue-400">Underweight</span>
-                    <span className="text-gray-500 dark:text-gray-400">&lt; 18.5</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-green-600 dark:text-green-400">Normal weight</span>
-                    <span className="text-gray-500 dark:text-gray-400">18.5 - 24.9</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-yellow-600 dark:text-yellow-400">Overweight</span>
-                    <span className="text-gray-500 dark:text-gray-400">25.0 - 29.9</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-red-600 dark:text-red-400">Obese</span>
-                    <span className="text-gray-500 dark:text-gray-400">&geq; 30.0</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-
-        <div className="flex justify-end space-x-3 p-6 border-t border-gray-100 dark:border-white/[0.07]">
-          <button
-            onClick={onClose}
-            className="btn-ghost"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleSave}
-            disabled={!isValid}
-            className="btn-primary"
-            
-          >
-            Save Profile
-          </button>
-        </div>
+  const field = (id: string, label: string, value: string, onChange: (v: string) => void, suffix: string) => (
+    <div>
+      <label htmlFor={id} className="label">
+        {label}
+      </label>
+      <div className="relative">
+        <input
+          id={id}
+          type="number"
+          inputMode="decimal"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="input pr-12 text-[16px]"
+        />
+        <span className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-[13px] text-gray-400">{suffix}</span>
       </div>
-    </div>,
-    document.body
+    </div>
+  );
+
+  return (
+    <Sheet open={isOpen} onClose={onClose} title={t('profile.title')} subtitle={t('profile.subtitle')}>
+      <div className="mt-5 space-y-4 px-6">
+        <div className="flex items-center justify-between">
+          <span className="text-[15px] text-gray-900 dark:text-white">{t('profile.sex')}</span>
+          <Segmented
+            label={t('profile.sex')}
+            value={gender}
+            onChange={setGender}
+            options={[
+              { value: 'MALE', label: t('profile.male') },
+              { value: 'FEMALE', label: t('profile.female') },
+            ]}
+          />
+        </div>
+        <div className="grid grid-cols-3 gap-3">
+          {field('p-height', t('profile.height'), height, setHeight, 'cm')}
+          {field('p-weight', t('profile.weight'), weight, setWeight, unit)}
+          {field('p-age', t('profile.age'), age, setAge, t('profile.years'))}
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          {field('p-neck', t('profile.neck'), neck, setNeck, 'cm')}
+          {field('p-waist', t('profile.waist'), waist, setWaist, 'cm')}
+        </div>
+        <p className="text-[12px] text-gray-400 dark:text-gray-500">{t('profile.measureHint')}</p>
+
+        {bmi && (
+          <div className="grid grid-cols-2 border-y hairline py-3">
+            <div>
+              <p className="text-[24px] font-semibold tabular-nums text-gray-900 dark:text-white">{number(bmi, 1, 1)}</p>
+              <p className="text-[12px] text-gray-500 dark:text-gray-400">
+                {t('profile.bmi')} · {t(`profile.bmiCategory.${bmiCategory(bmi)}`)}
+              </p>
+            </div>
+            {fat && (
+              <div className="border-l hairline pl-4">
+                <p className="text-[24px] font-semibold tabular-nums text-gray-900 dark:text-white">{number(Math.max(0, fat.percentage), 1, 1)}%</p>
+                <p className="text-[12px] text-gray-500 dark:text-gray-400">
+                  {t('profile.bodyFat')} · {t(`profile.method.${fat.method}`)}
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+      <div className="mt-6 grid grid-cols-2 gap-2 px-6">
+        <button onClick={onClose} className="pill-secondary">
+          {t('common.cancel')}
+        </button>
+        <button onClick={save} disabled={!valid} className="pill-primary">
+          {t('common.save')}
+        </button>
+      </div>
+    </Sheet>
   );
 }
