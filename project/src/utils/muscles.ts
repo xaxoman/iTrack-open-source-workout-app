@@ -16,7 +16,7 @@ export const ALL_MUSCLES = MUSCLE_GROUPS.flatMap((g) => g.muscles);
 /** Comparison key: letters only, lower case ("Hip Flexors" → "hipflexors"). */
 export const muscleKey = (name: string) => name.replace(/[^A-Za-zÀ-ÿ]/g, '').toLowerCase();
 
-/** Body-map regions drawn by <MuscleMap>. */
+/** Body-map regions drawn by <MuscleMap> (MuscleMap's muscle groups; deltoids split by view). */
 export const BODY_REGIONS = [
   'chest',
   'frontDelts',
@@ -31,9 +31,11 @@ export const BODY_REGIONS = [
   'hamstrings',
   'glutes',
   'calves',
+  'tibialis',
   'traps',
-  'lats',
+  'upperBack',
   'lowerBack',
+  'neck',
 ] as const;
 export type BodyRegion = (typeof BODY_REGIONS)[number];
 
@@ -48,18 +50,18 @@ const REGIONS_BY_MUSCLE: Record<string, readonly BodyRegion[]> = {
   biceps: ['biceps'],
   triceps: ['triceps'],
   forearms: ['forearms'],
-  back: ['lats', 'traps', 'lowerBack'],
-  lats: ['lats'],
+  back: ['upperBack', 'traps', 'lowerBack'],
+  lats: ['upperBack'],
   traps: ['traps'],
-  rhomboids: ['traps'],
-  upperback: ['traps', 'lats'],
+  rhomboids: ['upperBack'],
+  upperback: ['upperBack', 'traps'],
   lowerback: ['lowerBack'],
-  neck: ['traps'],
+  neck: ['neck'],
   core: ['abs', 'obliques'],
   abs: ['abs'],
   obliques: ['obliques'],
   serratus: ['obliques'],
-  legs: ['quads', 'hamstrings', 'calves'],
+  legs: ['quads', 'hamstrings', 'glutes', 'calves'],
   glutes: ['glutes'],
   quadriceps: ['quads'],
   quads: ['quads'],
@@ -68,7 +70,7 @@ const REGIONS_BY_MUSCLE: Record<string, readonly BodyRegion[]> = {
   abductors: ['glutes'],
   hipflexors: ['quads'],
   calves: ['calves'],
-  tibialis: ['calves'],
+  tibialis: ['tibialis'],
   fullbody: BODY_REGIONS,
   // Italian names typed by hand.
   petto: ['chest'],
@@ -76,16 +78,18 @@ const REGIONS_BY_MUSCLE: Record<string, readonly BodyRegion[]> = {
   bicipiti: ['biceps'],
   tricipiti: ['triceps'],
   avambracci: ['forearms'],
-  schiena: ['lats', 'traps', 'lowerBack'],
-  dorsali: ['lats'],
+  schiena: ['upperBack', 'traps', 'lowerBack'],
+  dorsali: ['upperBack'],
   trapezi: ['traps'],
   lombari: ['lowerBack'],
+  collo: ['neck'],
   addominali: ['abs'],
   obliqui: ['obliques'],
-  gambe: ['quads', 'hamstrings', 'calves'],
+  gambe: ['quads', 'hamstrings', 'glutes', 'calves'],
   glutei: ['glutes'],
   quadricipiti: ['quads'],
   femorali: ['hamstrings'],
+  adduttori: ['adductors'],
   polpacci: ['calves'],
 };
 
