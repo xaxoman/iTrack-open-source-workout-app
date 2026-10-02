@@ -2,13 +2,15 @@ iTrack is a privacy-focused, open-source workout tracking application that helps
 
 Features:
 • Create custom workout routines with detailed exercises
-• Track your workout progress in real-time
-• Collapsible exercise cards for a clean, efficient interface
-• Customizable repetitions and time-based exercises
+• Track your workout in real time: tick off every exercise, set by set
+• Large demo videos or GIFs above the current exercise
+• Repetition and time-based exercises, with a built-in timer
+• Rest timer with sounds bundled in the app, so they work offline
 • Target muscle group tracking
-• Video URL support for proper exercise form
-• Multiple sets support
-• Workout history with completion percentages
+• Calendar history: open, edit or delete past workouts
+• Stats, weekly trends and records for every routine
+• Body-weight log in kg or lb
+• Available in English and Italian
 • No trackers, no ads, and completely free
 
 iTrack is designed to be simple, effective, and privacy-respecting. Your workout data stays on your device - we don't collect any data or require internet access for core functionality.
