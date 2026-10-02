@@ -1,6 +1,9 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { Workout, WorkoutTemplate, EquipmentItem, WeightEntry, RoutineBookmark } from '../types/workout';
+import type { LanguagePref } from '../i18n';
+import type { WeightUnit } from '../utils/units';
+import type { RestSound } from '../utils/sound';
 
 export interface NotificationSettings {
   enabled: boolean;
@@ -50,6 +53,17 @@ interface WorkoutStore {
   exerciseWeights: Record<string, number>;
   /** Whether the first-time equipment/weights onboarding is done. */
   aiOnboarded: boolean;
+  // --- Preferences ---
+  /** UI language; 'system' follows the device. */
+  language: LanguagePref;
+  /** Display unit for every weight. Data is always stored in kg. */
+  weightUnit: WeightUnit;
+  /** Sound played by the rest timer (bundled, works offline). */
+  restSound: RestSound;
+  /** Vibrate when a rest period ends. */
+  restVibrate: boolean;
+  /** Daily JSON backup to the device's Documents folder (Android only). */
+  autoBackup: boolean;
   addWorkout: (workout: Workout) => void;
   updateWorkout: (workout: Workout) => void;
   deleteWorkout: (id: string) => void;
@@ -69,6 +83,11 @@ interface WorkoutStore {
   updateEquipment: (equipment: EquipmentItem[]) => void;
   updateExerciseWeights: (weights: Record<string, number>) => void;
   setAiOnboarded: (onboarded: boolean) => void;
+  setLanguage: (language: LanguagePref) => void;
+  setWeightUnit: (unit: WeightUnit) => void;
+  setRestSound: (sound: RestSound) => void;
+  setRestVibrate: (vibrate: boolean) => void;
+  setAutoBackup: (enabled: boolean) => void;
   importData: (data: Partial<WorkoutStore>) => void;
 }
 
@@ -97,6 +116,11 @@ export const useWorkoutStore = create<WorkoutStore>()(
       equipment: [],
       exerciseWeights: {},
       aiOnboarded: false,
+      language: 'system',
+      weightUnit: 'kg',
+      restSound: 'beep',
+      restVibrate: true,
+      autoBackup: true,
       addWorkout: (workout) =>
         set((state) => ({ workouts: [...state.workouts, workout] })),
       updateWorkout: (workout) =>
@@ -178,6 +202,11 @@ export const useWorkoutStore = create<WorkoutStore>()(
       updateExerciseWeights: (weights) =>
         set((state) => ({ exerciseWeights: { ...state.exerciseWeights, ...weights } })),
       setAiOnboarded: (onboarded) => set({ aiOnboarded: onboarded }),
+      setLanguage: (language) => set({ language }),
+      setWeightUnit: (weightUnit) => set({ weightUnit }),
+      setRestSound: (restSound) => set({ restSound }),
+      setRestVibrate: (restVibrate) => set({ restVibrate }),
+      setAutoBackup: (autoBackup) => set({ autoBackup }),
       importData: (data) =>
         set((state) => ({
           workouts: data.workouts || state.workouts,
@@ -191,6 +220,11 @@ export const useWorkoutStore = create<WorkoutStore>()(
           equipment: data.equipment || state.equipment,
           exerciseWeights: data.exerciseWeights || state.exerciseWeights,
           aiOnboarded: data.aiOnboarded ?? state.aiOnboarded,
+          // Preferences that follow the user across devices (language stays
+          // per device, since 'system' depends on the phone).
+          weightUnit: data.weightUnit ?? state.weightUnit,
+          restSound: data.restSound ?? state.restSound,
+          restVibrate: data.restVibrate ?? state.restVibrate,
         })),
     }),
     {

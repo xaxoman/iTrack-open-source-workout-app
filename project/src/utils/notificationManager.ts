@@ -1,6 +1,7 @@
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { Capacitor } from '@capacitor/core';
 import { NotificationSettings } from '../store/useWorkoutStore';
+import { getI18n } from '../i18n';
 
 export const notificationManager = {
   /**
@@ -17,8 +18,8 @@ export const notificationManager = {
         // as Android channels are immutable once created.
         await LocalNotifications.createChannel({
           id: 'workout_reminders_v2',
-          name: 'Workout Reminders',
-          description: 'Reminders to workout',
+          name: getI18n().t('notifications.channelName'),
+          description: getI18n().t('notifications.channelDescription'),
           importance: 5, // High importance for sound and peek
           visibility: 1,
           vibration: true,
@@ -65,6 +66,7 @@ export const notificationManager = {
       };
 
       let idCounter = 100;
+      const { t } = getI18n();
 
       for (const day of settings.days) {
         const dayOfWeek = dayMap[day.toLowerCase()];
@@ -72,8 +74,8 @@ export const notificationManager = {
 
         notifications.push({
           id: idCounter++,
-          title: 'Time to Workout! 💪',
-          body: 'Your scheduled workout time has arrived. Let\'s crush it!',
+          title: t('notifications.title'),
+          body: t('notifications.body'),
           schedule: {
             on: {
               weekday: dayOfWeek,

@@ -2,6 +2,8 @@ import { Filesystem, Directory, Encoding, FileInfo } from '@capacitor/filesystem
 import { Capacitor } from '@capacitor/core';
 import { useWorkoutStore } from '../store/useWorkoutStore';
 import toast from 'react-hot-toast';
+import { getI18n } from '../i18n';
+import { getSyncableData } from '../lib/cloudSync';
 
 const BACKUP_DIR = 'backups';
 const MAX_BACKUPS = 2;
@@ -15,6 +17,10 @@ export const backupManager = {
   init: async () => {
     if (!Capacitor.isNativePlatform()) {
       console.log('Auto-backup skipped: Not running on a native platform');
+      return;
+    }
+    if (!useWorkoutStore.getState().autoBackup) {
+      console.log('Auto-backup skipped: turned off in Settings');
       return;
     }
 
@@ -71,16 +77,7 @@ export const backupManager = {
         console.log('Performing auto-backup...');
         await backupManager.createBackup();
         await backupManager.pruneBackups();
-        toast.success('Backup completed', {
-          position: 'top-center',
-          duration: 3000,
-          style: {
-            borderRadius: '10px',
-            background: '#333',
-            color: '#fff',
-            marginTop: '40px',
-          },
-        });
+        toast.success(getI18n().t('settings.backupDone'), { duration: 3000 });
       } else {
         console.log('Skipping auto-backup: Last backup is recent enough');
       }
@@ -93,15 +90,9 @@ export const backupManager = {
    * Create a new backup file with current store data
    */
   createBackup: async () => {
-    const state = useWorkoutStore.getState();
-    // Extract only the data we want to save (exclude functions)
+    // Same payload as Export / cloud sync, so a backup restores everything.
     const dataToSave = {
-      workouts: state.workouts,
-      templates: state.templates,
-      userProfile: state.userProfile,
-      routineBookmarks: state.routineBookmarks,
-      notificationSettings: state.notificationSettings,
-      darkMode: state.darkMode,
+      ...getSyncableData(),
       timestamp: new Date().toISOString(),
     };
 

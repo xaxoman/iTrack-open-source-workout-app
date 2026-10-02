@@ -1,555 +1,223 @@
-import { useMemo, useState, type ReactNode, type CSSProperties } from 'react';
-import { LineChart as LineChartIcon, Calendar, TrendingUp, Activity, Scale, Plus, ClipboardList, Clock, Bookmark } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { useMemo, useState } from 'react';
+import { Activity, Trash2 } from 'lucide-react';
+import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { useWorkoutStore } from '../store/useWorkoutStore';
-import { LogWeightModal } from '../components/LogWeightModal';
-import { RoutineBookmarksModal } from '../components/RoutineBookmarksModal';
-import type { Workout } from '../types/workout';
-import { formatTime } from '../utils/formatTime';
+import { PageTitle } from '../components/ui';
+import { RoutineNotes } from '../components/RoutineNotes';
+import { LogWeightSheet } from '../components/LogWeightSheet';
+import { useI18n } from '../i18n';
+import { useUnits } from '../utils/units';
+import type { Workout, WorkoutTemplate } from '../types/workout';
+import { computeStreak, dayKey, latestWorkout, startOfWeek, workoutsForTemplate } from '../utils/workout';
 
-interface ChartTheme {
-  gridColor: string;
-  tickColor: string;
-  tooltipStyle: CSSProperties;
-  darkMode: boolean;
-}
-
-interface CompletionTrendPoint {
-  label: string;
-  completion: number;
-  trackedWorkouts: number;
-  trend: number | null;
-}
-
-function getLatestWorkoutsByName(periodWorkouts: Workout[]) {
-  const latestByName = new Map<string, Workout>();
-
-  periodWorkouts.forEach((workout) => {
-    const existingWorkout = latestByName.get(workout.name);
-
-    if (!existingWorkout || new Date(workout.date).getTime() > new Date(existingWorkout.date).getTime()) {
-      latestByName.set(workout.name, workout);
-    }
+/** Latest result per routine name within a period, averaged. */
+function averageLatestCompletion(list: Workout[]) {
+  const latest = new Map<string, Workout>();
+  list.forEach((w) => {
+    const prev = latest.get(w.name);
+    if (!prev || new Date(w.date) > new Date(prev.date)) latest.set(w.name, w);
   });
-
-  return Array.from(latestByName.values());
+  const values = Array.from(latest.values());
+  return values.length ? values.reduce((s, w) => s + w.completionPercentage, 0) / values.length : null;
 }
 
-function buildCompletionTrendData(
-  points: Array<Omit<CompletionTrendPoint, 'trend'>>
-): CompletionTrendPoint[] {
-  return points.map((point, index) => ({
-    ...point,
-    trend: index === 0 ? null : point.completion - points[index - 1].completion,
-  }));
+function useChartColors() {
+  const darkMode = useWorkoutStore((s) => s.darkMode);
+  return {
+    darkMode,
+    line: darkMode ? '#818cf8' : '#4f46e5',
+    grid: darkMode ? 'rgba(255,255,255,0.08)' : '#f3f4f6',
+    tick: darkMode ? '#6b7280' : '#9ca3af',
+    surface: darkMode ? '#030712' : '#ffffff',
+    tooltip: {
+      backgroundColor: darkMode ? '#111827' : '#ffffff',
+      border: darkMode ? '1px solid rgba(255,255,255,0.1)' : '1px solid #e5e7eb',
+      borderRadius: '12px',
+      boxShadow: '0 8px 24px rgba(3,7,18,0.12)',
+      color: darkMode ? '#f9fafb' : '#111827',
+      fontSize: '12px',
+    },
+  };
 }
 
 export function Progress() {
-  const { workouts, darkMode } = useWorkoutStore();
+  const { t, tp, lang, date, capitalize, weekdays, duration } = useI18n();
+  const { workouts } = useWorkoutStore();
+  const colors = useChartColors();
 
-  // Chart theme (single measure — same hue in both charts, tuned per surface)
-  const lineColor = darkMode ? '#6366f1' : '#4f46e5';
-  const gridColor = darkMode ? 'rgba(255,255,255,0.08)' : '#e5e7eb';
-  const tickColor = darkMode ? '#9ca3af' : '#6b7280';
-  const tooltipStyle: CSSProperties = {
-    backgroundColor: darkMode ? '#111827' : '#ffffff',
-    border: darkMode ? '1px solid rgba(255,255,255,0.1)' : '1px solid #e5e7eb',
-    borderRadius: '12px',
-    boxShadow: '0 8px 24px rgba(3,7,18,0.12)',
-    color: darkMode ? '#f9fafb' : '#111827',
-    fontSize: '12px',
-  };
-  const chartTheme: ChartTheme = { gridColor, tickColor, tooltipStyle, darkMode };
-
-  // Calculate real statistics from workout data
   const stats = useMemo(() => {
-    if (!workouts.length) {
-      return {
-        thisMonth: 0,
-        totalWorkouts: 0,
-        averageDuration: 0,
-        averageCompletion: 0,
-        streak: 0,
-        weeklyData: [],
-        monthlyData: [],
-        completionData: [],
-        mostActiveDay: 'No data'
-      };
-    }
-
     const now = new Date();
-    const thisMonth = now.getMonth();
-    const thisYear = now.getFullYear();
-
-    // Filter workouts for this month
-    const thisMonthWorkouts = workouts.filter(workout => {
-      const workoutDate = new Date(workout.date);
-      return workoutDate.getMonth() === thisMonth && workoutDate.getFullYear() === thisYear;
+    const thisMonth = workouts.filter((w) => {
+      const d = new Date(w.date);
+      return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
     });
+    const avgCompletion = workouts.length ? workouts.reduce((s, w) => s + w.completionPercentage, 0) / workouts.length : 0;
+    const avgDuration = workouts.length ? workouts.reduce((s, w) => s + w.duration, 0) / workouts.length : 0;
 
-    // Calculate average duration
-    const averageDuration = workouts.reduce((sum, workout) => sum + workout.duration, 0) / workouts.length;
-
-    // Calculate average completion percentage
-    const averageCompletion = workouts.reduce((sum, workout) => sum + workout.completionPercentage, 0) / workouts.length;
-
-    // Calculate streak (consecutive days with workouts)
-    const sortedWorkouts = [...workouts].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-    let streak = 0;
-    const currentDate = new Date();
-    currentDate.setHours(0, 0, 0, 0);
-
-    for (let i = 0; i < 30; i++) { // Check last 30 days
-      const checkDate = new Date(currentDate);
-      checkDate.setDate(checkDate.getDate() - i);
-      
-      const hasWorkout = sortedWorkouts.some(workout => {
-        const workoutDate = new Date(workout.date);
-        workoutDate.setHours(0, 0, 0, 0);
-        return workoutDate.getTime() === checkDate.getTime();
+    // Last 8 weeks, Monday-based.
+    const thisMonday = startOfWeek(now);
+    const weekly = Array.from({ length: 8 }, (_, i) => {
+      const start = new Date(thisMonday);
+      start.setDate(start.getDate() - (7 - i) * 7);
+      const end = new Date(start);
+      end.setDate(end.getDate() + 7);
+      const inWeek = workouts.filter((w) => {
+        const d = new Date(w.date);
+        return d >= start && d < end;
       });
-
-      if (hasWorkout) {
-        streak++;
-      } else if (i > 0) { // Don't break on first day if no workout today
-        break;
-      }
-    }
-
-    // Generate weekly completion trend for the last 8 weeks using the latest completion per workout name.
-    const weeklyData = [];
-    for (let i = 7; i >= 0; i--) {
-      const weekStart = new Date();
-      weekStart.setDate(weekStart.getDate() - (i * 7) - weekStart.getDay());
-      weekStart.setHours(0, 0, 0, 0);
-      
-      const weekEnd = new Date(weekStart);
-      weekEnd.setDate(weekEnd.getDate() + 6);
-      weekEnd.setHours(23, 59, 59, 999);
-
-      const weekWorkouts = workouts.filter(workout => {
-        const workoutDate = new Date(workout.date);
-        return workoutDate >= weekStart && workoutDate <= weekEnd;
-      });
-
-      const latestWeekWorkouts = getLatestWorkoutsByName(weekWorkouts);
-      const averageWeekCompletion = latestWeekWorkouts.length
-        ? latestWeekWorkouts.reduce((sum, workout) => sum + workout.completionPercentage, 0) / latestWeekWorkouts.length
-        : 0;
-
-      weeklyData.push({
-        label: `Week ${8 - i}`,
-        completion: averageWeekCompletion,
-        trackedWorkouts: latestWeekWorkouts.length,
-      });
-    }
-
-    // Generate monthly completion trend for the last 6 months using the latest completion per workout name.
-    const monthlyData = [];
-    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    
-    for (let i = 5; i >= 0; i--) {
-      const monthDate = new Date();
-      monthDate.setMonth(monthDate.getMonth() - i);
-      const month = monthDate.getMonth();
-      const year = monthDate.getFullYear();
-
-      const monthWorkouts = workouts.filter(workout => {
-        const workoutDate = new Date(workout.date);
-        return workoutDate.getMonth() === month && workoutDate.getFullYear() === year;
-      });
-
-      const latestMonthWorkouts = getLatestWorkoutsByName(monthWorkouts);
-      const averageMonthCompletion = latestMonthWorkouts.length
-        ? latestMonthWorkouts.reduce((sum, workout) => sum + workout.completionPercentage, 0) / latestMonthWorkouts.length
-        : 0;
-
-      monthlyData.push({
-        label: monthNames[month],
-        completion: averageMonthCompletion,
-        trackedWorkouts: latestMonthWorkouts.length,
-      });
-    }
-
-    // Completion percentage distribution
-    const completionRanges = [
-      { range: '0-25%', count: 0, color: '#ef4444' },
-      { range: '26-50%', count: 0, color: '#f97316' },
-      { range: '51-75%', count: 0, color: '#eab308' },
-      { range: '76-100%', count: 0, color: '#22c55e' }
-    ];
-
-    workouts.forEach(workout => {
-      if (workout.completionPercentage <= 25) completionRanges[0].count++;
-      else if (workout.completionPercentage <= 50) completionRanges[1].count++;
-      else if (workout.completionPercentage <= 75) completionRanges[2].count++;
-      else completionRanges[3].count++;
+      return { start, completion: averageLatestCompletion(inWeek), count: inWeek.length };
     });
+    const tracked = weekly.filter((w) => w.completion !== null);
+    const delta = tracked.length >= 2 ? tracked[tracked.length - 1].completion! - tracked[0].completion! : null;
 
-    // Find most active day of the week
-    const dayCount = [0, 0, 0, 0, 0, 0, 0]; // Sunday to Saturday
-    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    
-    workouts.forEach(workout => {
-      const day = new Date(workout.date).getDay();
-      dayCount[day]++;
+    // Sessions per weekday, Monday-first.
+    const byWeekday = [0, 0, 0, 0, 0, 0, 0];
+    workouts.forEach((w) => {
+      byWeekday[(new Date(w.date).getDay() + 6) % 7]++;
     });
-
-    const mostActiveDayIndex = dayCount.indexOf(Math.max(...dayCount));
-    const mostActiveDay = dayNames[mostActiveDayIndex];
+    const topDay = byWeekday.indexOf(Math.max(...byWeekday));
 
     return {
-      thisMonth: thisMonthWorkouts.length,
-      totalWorkouts: workouts.length,
-      averageDuration,
-      averageCompletion,
-      streak,
-      weeklyData: buildCompletionTrendData(weeklyData),
-      monthlyData: buildCompletionTrendData(monthlyData),
-      completionData: completionRanges,
-      mostActiveDay
+      thisMonth: thisMonth.length,
+      streak: computeStreak(workouts),
+      avgCompletion,
+      avgDuration,
+      weekly,
+      delta,
+      byWeekday,
+      topDay,
     };
   }, [workouts]);
 
-  if (workouts.length === 0) {
-    return (
-      <div className="space-y-6">
-        <h1 className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-white">Progress</h1>
+  const longDays = weekdays('long');
+  const narrowDays = weekdays('narrow');
+  const maxDay = Math.max(1, ...stats.byWeekday);
+  const chartData = stats.weekly.map((w) => ({
+    label: date(w.start, { day: 'numeric', month: 'short' }),
+    completion: w.completion === null ? null : Math.round(w.completion),
+    count: w.count,
+  }));
 
-        <TrainingPlanCard />
-        <BodyWeightCard theme={chartTheme} />
+  return (
+    <div>
+      <PageTitle eyebrow={capitalize(date(new Date(), { month: 'long' }))} title={t('nav.progress')} />
 
-        <div className="card p-12 text-center">
-          <span className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gray-100 text-gray-400 dark:bg-gray-800 dark:text-gray-500">
-            <Activity className="h-7 w-7" />
+      {workouts.length === 0 ? (
+        <div className="mt-6 border-y hairline py-10 text-center">
+          <span className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-gray-100 text-gray-400 dark:bg-white/[0.06] dark:text-gray-500">
+            <Activity className="h-6 w-6" />
           </span>
-          <h2 className="text-lg font-semibold tracking-tight text-gray-900 dark:text-white mb-2">
-            No Workout Data Yet
-          </h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400 max-w-md mx-auto">
-            Start completing workouts to see your progress statistics, trends, and achievements here.
-          </p>
+          <p className="text-[15px] font-medium text-gray-900 dark:text-white">{t('progress.emptyTitle')}</p>
+          <p className="mx-auto mt-1 max-w-xs text-[14px] text-gray-500 dark:text-gray-400">{t('progress.emptyBody')}</p>
         </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-white">Progress</h1>
-
-      {/* Main Statistics Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-6">
-        <StatCard
-          icon={<Calendar className="h-4 w-4" />}
-          title="This Month"
-          value={String(stats.thisMonth)}
-          caption={stats.thisMonth === 1 ? 'Workout completed' : 'Workouts completed'}
-        />
-        <StatCard
-          icon={<TrendingUp className="h-4 w-4" />}
-          title="Streak"
-          value={String(stats.streak)}
-          caption={stats.streak === 1 ? 'Day in a row' : 'Days in a row'}
-        />
-        <StatCard
-          icon={<LineChartIcon className="h-4 w-4" />}
-          title="Avg. Completion"
-          value={`${Math.round(stats.averageCompletion)}%`}
-          caption="Average completion rate"
-        />
-      </div>
-
-      {/* Training plan overview */}
-      <TrainingPlanCard />
-
-      {/* Body weight */}
-      <BodyWeightCard theme={chartTheme} />
-
-      {/* Secondary Statistics */}
-      <div className="grid md:grid-cols-2 gap-6">
-        <div className="card p-6">
-          <h3 className="text-lg font-semibold tracking-tight text-gray-900 dark:text-white mb-4">
-            Quick Stats
-          </h3>
-          <div className="divide-y divide-gray-100 dark:divide-white/[0.06]">
-            <div className="flex justify-between items-center py-2.5 first:pt-0 last:pb-0">
-              <span className="text-sm text-gray-500 dark:text-gray-400">Total Workouts</span>
-              <span className="font-semibold text-gray-900 dark:text-white">{stats.totalWorkouts}</span>
-            </div>
-            <div className="flex justify-between items-center py-2.5 first:pt-0 last:pb-0">
-              <span className="text-sm text-gray-500 dark:text-gray-400">Average Duration</span>
-              <span className="font-semibold text-gray-900 dark:text-white">
-                {formatTime(stats.averageDuration)}
-              </span>
-            </div>
-            <div className="flex justify-between items-center py-2.5 first:pt-0 last:pb-0">
-              <span className="text-sm text-gray-500 dark:text-gray-400">Most Active Day</span>
-              <span className="font-semibold text-gray-900 dark:text-white">{stats.mostActiveDay}</span>
-            </div>
+      ) : (
+        <>
+          <div className="mt-3 grid grid-cols-2 border-y hairline">
+            <Stat value={String(stats.thisMonth)} label={tp('progress.workoutsThisMonth', stats.thisMonth)} />
+            <Stat value={String(stats.streak)} label={tp('progress.dayStreak', stats.streak)} divider />
+            <Stat value={`${Math.round(stats.avgCompletion)}%`} label={t('progress.avgCompletion')} top />
+            <Stat value={duration(stats.avgDuration)} label={t('progress.avgDuration')} divider top />
           </div>
-        </div>
 
-        <div className="card p-6">
-          <h3 className="text-lg font-semibold tracking-tight text-gray-900 dark:text-white mb-4">
-            Completion Rate Distribution
-          </h3>
-          <div className="divide-y divide-gray-100 dark:divide-white/[0.06]">
-            {stats.completionData.map((item, index) => (
-              <div key={index} className="flex items-center justify-between py-2.5 first:pt-0 last:pb-0">
-                <div className="flex items-center gap-3">
-                  <span
-                    className="h-2.5 w-2.5 rounded-full"
-                    style={{ backgroundColor: item.color }}
-                  ></span>
-                  <span className="text-sm text-gray-500 dark:text-gray-400">{item.range}</span>
-                </div>
-                <span className="font-semibold text-gray-900 dark:text-white">
-                  {item.count} {item.count === 1 ? 'workout' : 'workouts'}
+          <section className="mt-6">
+            <div className="flex items-baseline justify-between gap-3">
+              <h2 className="text-[15px] font-semibold text-gray-900 dark:text-white">{t('progress.weeklyCompletion')}</h2>
+              {stats.delta !== null && (
+                <span className="text-[12px] text-gray-500 dark:text-gray-400">
+                  {t('progress.delta', { delta: `${stats.delta >= 0 ? '+' : '−'}${Math.abs(Math.round(stats.delta))}` })}
                 </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
+              )}
+            </div>
+            <p className="text-[12px] text-gray-500 dark:text-gray-400">{t('progress.weeklyHint')}</p>
+            <div className="mt-3 h-[170px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={chartData} margin={{ top: 16, right: 8, left: 0, bottom: 0 }}>
+                  <CartesianGrid vertical={false} stroke={colors.grid} />
+                  <XAxis dataKey="label" tick={{ fill: colors.tick, fontSize: 10 }} axisLine={false} tickLine={false} interval={1} />
+                  <YAxis domain={[0, 100]} ticks={[0, 50, 100]} tick={{ fill: colors.tick, fontSize: 10 }} tickFormatter={(v) => `${v}%`} axisLine={false} tickLine={false} width={40} />
+                  <Tooltip
+                    contentStyle={colors.tooltip}
+                    formatter={(value: number) => [`${value}%`, t('progress.completion')]}
+                    labelFormatter={(label, payload) => {
+                      const count = (payload?.[0]?.payload as { count?: number } | undefined)?.count ?? 0;
+                      return `${t('progress.weekOf', { date: String(label) })} · ${tp('history.workouts', count)}`;
+                    }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="completion"
+                    stroke={colors.line}
+                    strokeWidth={2}
+                    connectNulls
+                    dot={{ r: 3, fill: colors.line, strokeWidth: 0 }}
+                    activeDot={{ r: 5, stroke: colors.surface, strokeWidth: 2 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </section>
 
-      {/* Charts */}
-      <div className="grid md:grid-cols-2 gap-6">
-        <div className="card p-6">
-          <h2 className="text-lg font-semibold tracking-tight text-gray-900 dark:text-white mb-1">
-            Weekly Completion Trend
-          </h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-            Latest completion percentage recorded for each workout routine in that week.
-          </p>
-          <div className="h-[300px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={stats.weeklyData}>
-                <CartesianGrid vertical={false} stroke={gridColor} />
-                <XAxis
-                  dataKey="label"
-                  tick={{ fill: tickColor, fontSize: 12 }}
-                  axisLine={false}
-                  tickLine={false}
-                />
-                <YAxis
-                  domain={[0, 100]}
-                  tick={{ fill: tickColor, fontSize: 12 }}
-                  tickFormatter={(value) => `${value}%`}
-                  axisLine={false}
-                  tickLine={false}
-                  width={40}
-                />
-                <Tooltip
-                  formatter={(value: number) => [`${Math.round(value)}%`, 'Latest completion avg.']}
-                  labelFormatter={(label, payload) => {
-                    const point = payload?.[0]?.payload as CompletionTrendPoint | undefined;
+          <section className="mt-6 border-t hairline pt-4">
+            <div className="flex items-baseline justify-between gap-3">
+              <h2 className="text-[15px] font-semibold text-gray-900 dark:text-white">{t('progress.byWeekday')}</h2>
+              <span className="text-[12px] text-gray-500 dark:text-gray-400">{t('progress.yourDay', { day: lang === 'en' ? capitalize(longDays[stats.topDay]) : longDays[stats.topDay] })}</span>
+            </div>
+            <div className="mt-3 flex h-24 items-end justify-between gap-2">
+              {stats.byWeekday.map((count, i) => (
+                <div
+                  key={i}
+                  className="flex flex-1 flex-col items-center gap-1.5"
+                  role="img"
+                  aria-label={`${capitalize(longDays[i])}: ${tp('history.workouts', count)}`}
+                  title={`${capitalize(longDays[i])}: ${tp('history.workouts', count)}`}
+                >
+                  {i === stats.topDay && <span className="text-[11px] font-semibold tabular-nums text-gray-900 dark:text-white">{count}</span>}
+                  <div
+                    className={`w-full rounded-t ${i === stats.topDay ? 'bg-indigo-600 dark:bg-indigo-400' : 'bg-indigo-200 dark:bg-indigo-400/30'}`}
+                    style={{ height: `${Math.max(2, (count / maxDay) * 64)}px` }}
+                  />
+                  <span className="text-[11px] text-gray-500 dark:text-gray-400">{narrowDays[i]}</span>
+                </div>
+              ))}
+            </div>
+          </section>
+        </>
+      )}
 
-                    if (!point) {
-                      return label;
-                    }
-
-                    const trendText = point.trend === null
-                      ? 'Starting point'
-                      : `${point.trend >= 0 ? '+' : ''}${Math.round(point.trend)} pts vs previous week`;
-
-                    return `${label} | ${point.trackedWorkouts} workout${point.trackedWorkouts === 1 ? '' : 's'} | ${trendText}`;
-                  }}
-                  contentStyle={tooltipStyle}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="completion"
-                  stroke={lineColor}
-                  strokeWidth={2}
-                  dot={{ fill: lineColor, strokeWidth: 0, r: 4 }}
-                  activeDot={{ r: 5, strokeWidth: 2, stroke: darkMode ? '#111827' : '#ffffff' }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        <div className="card p-6">
-          <h2 className="text-lg font-semibold tracking-tight text-gray-900 dark:text-white mb-1">
-            Monthly Completion Trend
-          </h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-            Latest completion percentage recorded for each workout routine in that month.
-          </p>
-          <div className="h-[300px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={stats.monthlyData}>
-                <CartesianGrid vertical={false} stroke={gridColor} />
-                <XAxis
-                  dataKey="label"
-                  tick={{ fill: tickColor, fontSize: 12 }}
-                  axisLine={false}
-                  tickLine={false}
-                />
-                <YAxis
-                  domain={[0, 100]}
-                  tick={{ fill: tickColor, fontSize: 12 }}
-                  tickFormatter={(value) => `${value}%`}
-                  axisLine={false}
-                  tickLine={false}
-                  width={40}
-                />
-                <Tooltip
-                  formatter={(value: number) => [`${Math.round(value)}%`, 'Latest completion avg.']}
-                  labelFormatter={(label, payload) => {
-                    const point = payload?.[0]?.payload as CompletionTrendPoint | undefined;
-
-                    if (!point) {
-                      return label;
-                    }
-
-                    const trendText = point.trend === null
-                      ? 'Starting point'
-                      : `${point.trend >= 0 ? '+' : ''}${Math.round(point.trend)} pts vs previous month`;
-
-                    return `${label} | ${point.trackedWorkouts} workout${point.trackedWorkouts === 1 ? '' : 's'} | ${trendText}`;
-                  }}
-                  contentStyle={tooltipStyle}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="completion"
-                  stroke={lineColor}
-                  strokeWidth={2}
-                  dot={{ fill: lineColor, strokeWidth: 0, r: 4 }}
-                  activeDot={{ r: 5, strokeWidth: 2, stroke: darkMode ? '#111827' : '#ffffff' }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      </div>
+      <TrainingPlan />
+      <BodyWeight />
     </div>
   );
 }
 
-function StatCard({
-  icon,
-  title,
-  value,
-  caption,
-}: {
-  icon: ReactNode;
-  title: string;
-  value: string;
-  caption: string;
-}) {
+function Stat({ value, label, divider, top }: { value: string; label: string; divider?: boolean; top?: boolean }) {
   return (
-    <div className="card p-6">
-      <div className="flex items-center gap-2.5 mb-4">
-        <span className="icon-chip h-8 w-8 rounded-lg">{icon}</span>
-        <h2 className="text-sm font-medium text-gray-500 dark:text-gray-400">{title}</h2>
-      </div>
-      <p className="text-3xl font-semibold tracking-tight text-gray-900 dark:text-white">
-        {value}
-      </p>
-      <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{caption}</p>
-    </div>
-  );
-}
-// Soft tag colors for muscle chips — deterministic per name so a muscle keeps
-// its color everywhere (decorative only; the label carries the meaning).
-const MUSCLE_CHIP_STYLES = [
-  'bg-rose-50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-300',
-  'bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300',
-  'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300',
-  'bg-sky-50 text-sky-700 dark:bg-sky-500/10 dark:text-sky-300',
-  'bg-violet-50 text-violet-700 dark:bg-violet-500/10 dark:text-violet-300',
-  'bg-indigo-50 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-300',
-];
-
-function muscleChipStyle(name: string) {
-  let hash = 0;
-  for (const ch of name) hash = (hash * 31 + ch.charCodeAt(0)) >>> 0;
-  return MUSCLE_CHIP_STYLES[hash % MUSCLE_CHIP_STYLES.length];
-}
-
-function ProgressRing({
-  value,
-  label,
-  colorClass,
-}: {
-  value: number | null;
-  label: string;
-  colorClass: string;
-}) {
-  const size = 44;
-  const stroke = 4;
-  const radius = (size - stroke) / 2;
-  const circumference = 2 * Math.PI * radius;
-  const pct = value ?? 0;
-
-  return (
-    <div className="flex flex-col items-center gap-1">
-      <div className="relative" style={{ width: size, height: size }}>
-        <svg width={size} height={size} className="-rotate-90">
-          <circle
-            cx={size / 2}
-            cy={size / 2}
-            r={radius}
-            fill="none"
-            strokeWidth={stroke}
-            className="stroke-gray-100 dark:stroke-gray-800"
-          />
-          <circle
-            cx={size / 2}
-            cy={size / 2}
-            r={radius}
-            fill="none"
-            strokeWidth={stroke}
-            strokeLinecap="round"
-            strokeDasharray={circumference}
-            strokeDashoffset={circumference * (1 - pct / 100)}
-            className={colorClass}
-          />
-        </svg>
-        <span className="absolute inset-0 flex items-center justify-center text-[10px] font-semibold tabular-nums text-gray-700 dark:text-gray-200">
-          {value !== null ? `${value}%` : '–'}
-        </span>
-      </div>
-      <span className="text-[10px] font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">
-        {label}
-      </span>
+    <div className={`py-3.5 ${divider ? 'border-l hairline pl-4' : ''} ${top ? 'border-t hairline' : ''}`}>
+      <p className="text-[30px] font-semibold leading-none tracking-tight text-gray-900 dark:text-white">{value}</p>
+      <p className="mt-1.5 text-[12px] text-gray-500 dark:text-gray-400">{label}</p>
     </div>
   );
 }
 
-/** Notion-style "training plan" overview: one row per routine with target
- *  muscles, latest & record completion, and last session duration. Tapping a
- *  routine opens its notes & video bookmarks. */
-function TrainingPlanCard() {
+/** Latest vs. record completion per routine as a dot plot on a shared scale. */
+function TrainingPlan() {
+  const { t, tp, muscle, duration } = useI18n();
   const { templates, workouts, routineBookmarks } = useWorkoutStore();
-  const [bookmarksRoutine, setBookmarksRoutine] = useState<{ id: string; name: string } | null>(
-    null
-  );
+  const [notesFor, setNotesFor] = useState<WorkoutTemplate | null>(null);
 
   const rows = useMemo(
     () =>
       templates.map((template) => {
-        const history = workouts
-          .filter((w) => w.name === template.name)
-          .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-        const latest = history[0];
-        const record = history.length
-          ? Math.max(...history.map((w) => w.completionPercentage))
-          : null;
-        const muscles = Array.from(
-          new Set(template.exercises.flatMap((e) => e.targetMuscles ?? []))
-        );
+        const history = workoutsForTemplate(template, workouts);
+        const latest = latestWorkout(history);
+        const record = history.length ? Math.max(...history.map((w) => w.completionPercentage)) : null;
         return {
-          id: template.id,
-          name: template.name,
-          muscles,
+          template,
           latest: latest ? Math.round(latest.completionPercentage) : null,
           record: record !== null ? Math.round(record) : null,
-          lastMinutes: latest ? Math.round(latest.duration / 60) : null,
-          bookmarkCount: (routineBookmarks[template.id] ?? []).length,
+          lastDuration: latest?.duration ?? null,
+          muscles: Array.from(new Set(template.exercises.flatMap((e) => e.targetMuscles ?? []))),
+          notes: (routineBookmarks[template.id] ?? []).length,
         };
       }),
     [templates, workouts, routineBookmarks]
@@ -557,197 +225,196 @@ function TrainingPlanCard() {
 
   if (rows.length === 0) return null;
 
-  return (
-    <div className="card p-6">
-      <div className="flex items-center gap-2.5 mb-1">
-        <span className="icon-chip h-8 w-8 rounded-lg">
-          <ClipboardList className="h-4 w-4" />
-        </span>
-        <h3 className="text-lg font-semibold tracking-tight text-gray-900 dark:text-white">
-          Training Plan
-        </h3>
-      </div>
-      <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-        Latest and record completion for each routine. Tap a routine to add notes and video
-        bookmarks.
-      </p>
+  const values = rows.flatMap((r) => [r.latest, r.record]).filter((v): v is number => v !== null);
+  const min = values.length ? Math.max(0, Math.min(85, Math.floor((Math.min(...values) - 5) / 5) * 5)) : 85;
+  const x = (v: number) => ((v - min) / (100 - min)) * 100;
 
-      <div className="divide-y divide-gray-100 dark:divide-white/[0.06]">
+  return (
+    <section className="mt-8 border-t hairline pt-4">
+      <h2 className="text-[20px] font-semibold tracking-tight text-gray-900 dark:text-white">{t('plan.title')}</h2>
+      <p className="mt-0.5 text-[13px] text-gray-500 dark:text-gray-400">{t('plan.subtitle')}</p>
+      <div className="mt-3 flex items-center gap-5 text-[12px] text-gray-600 dark:text-gray-300">
+        <span className="flex items-center gap-1.5">
+          <span className="h-2.5 w-2.5 rounded-full bg-indigo-600 dark:bg-indigo-500" />
+          {t('plan.latest')}
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="h-2.5 w-2.5 rounded-full bg-emerald-600" />
+          {t('plan.record')}
+        </span>
+      </div>
+      <div className="mt-1">
         {rows.map((row) => (
           <button
-            key={row.id}
-            type="button"
-            onClick={() => setBookmarksRoutine({ id: row.id, name: row.name })}
-            className="group flex w-full flex-wrap items-center justify-between gap-x-4 gap-y-3 py-4 text-left first:pt-0 last:pb-0 focus-visible:outline-none"
+            key={row.template.id}
+            onClick={() => setNotesFor(row.template)}
+            className="block w-full border-b hairline py-4 text-left transition-colors hover:bg-gray-50/60 dark:hover:bg-white/[0.02]"
           >
-            <div className="min-w-0 flex-1">
-              <span className="flex items-center gap-2">
-                <h4 className="font-medium text-gray-900 transition-colors group-hover:text-indigo-600 group-focus-visible:text-indigo-600 dark:text-white dark:group-hover:text-indigo-400 dark:group-focus-visible:text-indigo-400 truncate">
-                  {row.name}
-                </h4>
-                {row.bookmarkCount > 0 && (
-                  <span className="inline-flex flex-shrink-0 items-center gap-1 text-xs font-medium tabular-nums text-gray-400 dark:text-gray-500">
-                    <Bookmark className="h-3 w-3" />
-                    {row.bookmarkCount}
-                  </span>
-                )}
-              </span>
-              {row.muscles.length > 0 && (
-                <div className="mt-1.5 flex flex-wrap gap-1.5">
-                  {row.muscles.map((muscle) => (
-                    <span
-                      key={muscle}
-                      className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${muscleChipStyle(muscle)}`}
-                    >
-                      {muscle}
-                    </span>
-                  ))}
+            <div className="flex items-baseline justify-between gap-3">
+              <p className="truncate text-[16px] font-semibold text-gray-900 dark:text-white">{row.template.name}</p>
+              {row.lastDuration !== null && <span className="flex-shrink-0 text-[13px] tabular-nums text-gray-500 dark:text-gray-400">{duration(row.lastDuration)}</span>}
+            </div>
+            <p className="text-[12px] text-gray-500 dark:text-gray-400">
+              {[row.muscles.map(muscle).join(', '), row.notes ? tp('plan.notes', row.notes) : ''].filter(Boolean).join(' · ') || '—'}
+            </p>
+            {row.latest !== null && row.record !== null ? (
+              <>
+                <div className="relative mt-4 h-5" aria-hidden="true">
+                  <div className="absolute inset-x-0 top-1/2 h-px bg-gray-200 dark:bg-white/10" />
+                  <div
+                    className="absolute top-1/2 h-[2px] -translate-y-1/2 bg-gray-300 dark:bg-white/20"
+                    style={{ left: `${x(row.latest)}%`, width: `${x(row.record) - x(row.latest)}%` }}
+                  />
+                  <span
+                    className="absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-indigo-600 ring-2 ring-white dark:bg-indigo-500 dark:ring-gray-950"
+                    style={{ left: `${x(row.latest)}%` }}
+                  />
+                  <span
+                    className="absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-emerald-600 ring-2 ring-white dark:ring-gray-950"
+                    style={{ left: `${x(row.record)}%`, ...(row.latest === row.record ? { boxShadow: '0 0 0 4px #4f46e5' } : {}) }}
+                  />
                 </div>
-              )}
-            </div>
-            <div className="flex items-center gap-5">
-              <ProgressRing
-                value={row.latest}
-                label="Latest"
-                colorClass="stroke-indigo-600 dark:stroke-indigo-500"
-              />
-              <ProgressRing
-                value={row.record}
-                label="Record"
-                colorClass="stroke-emerald-600 dark:stroke-emerald-500"
-              />
-              <div className="flex w-14 flex-col items-center gap-1">
-                <span className="flex h-11 items-center text-sm font-semibold tabular-nums text-gray-900 dark:text-white">
-                  {row.lastMinutes !== null ? `${row.lastMinutes}m` : '–'}
-                </span>
-                <span className="flex items-center gap-1 text-[10px] font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">
-                  <Clock className="h-3 w-3" />
-                  Time
-                </span>
-              </div>
-            </div>
+                <div className="mt-1 flex justify-between text-[11px] text-gray-400 dark:text-gray-500">
+                  <span>{min}%</span>
+                  <span className="font-medium tabular-nums text-gray-700 dark:text-gray-300">
+                    {row.latest === row.record
+                      ? t('plan.matchedRecord', { pct: row.latest })
+                      : t('plan.latestVsRecord', { latest: row.latest, record: row.record })}
+                  </span>
+                  <span>100%</span>
+                </div>
+              </>
+            ) : (
+              <p className="mt-2 text-[12px] text-gray-400 dark:text-gray-500">{t('plan.notDoneYet')}</p>
+            )}
           </button>
         ))}
       </div>
-
-      {bookmarksRoutine && (
-        <RoutineBookmarksModal
-          isOpen
-          onClose={() => setBookmarksRoutine(null)}
-          templateId={bookmarksRoutine.id}
-          routineName={bookmarksRoutine.name}
-        />
-      )}
-    </div>
+      <RoutineNotes template={notesFor} onClose={() => setNotesFor(null)} />
+    </section>
   );
 }
 
-/** Body-weight log with a trend chart, like a Notion weight chart. */
-function BodyWeightCard({ theme }: { theme: ChartTheme }) {
-  const { weightLog } = useWorkoutStore();
-  const [isLogModalOpen, setIsLogModalOpen] = useState(false);
-
-  // Different measure than the completion charts, so it gets its own hue
-  // (validated for contrast on both surfaces).
-  const weightColor = theme.darkMode ? '#8b5cf6' : '#7c3aed';
-
-  const data = weightLog.map((entry) => ({
-    label: new Date(entry.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
-    fullDate: new Date(entry.date).toLocaleDateString(),
-    weightKg: entry.weightKg,
-  }));
+/** Body-weight log: current value, quick log, trend and recent entries. */
+function BodyWeight() {
+  const { t, date, number } = useI18n();
+  const { weightLog, addWeightEntry, deleteWeightEntry } = useWorkoutStore();
+  const { unit, fromKg, toKg, formatValue } = useUnits();
+  const colors = useChartColors();
+  const [value, setValue] = useState('');
+  const [sheetOpen, setSheetOpen] = useState(false);
 
   const latest = weightLog[weightLog.length - 1];
   const previous = weightLog[weightLog.length - 2];
-  const delta = latest && previous ? latest.weightKg - previous.weightKg : null;
+  const first = weightLog[0];
+  const parsed = parseFloat(value.replace(',', '.'));
+  const kg = Number.isNaN(parsed) ? NaN : toKg(parsed);
+  const valid = kg > 20 && kg < 400;
+
+  const log = () => {
+    if (!valid) return;
+    addWeightEntry({ id: crypto.randomUUID(), date: dayKey(new Date()), weightKg: kg });
+    setValue('');
+  };
+
+  const signed = (deltaKg: number) => `${deltaKg > 0 ? '+' : deltaKg < 0 ? '−' : '±'}${formatValue(Math.abs(deltaKg))}`;
+  const data = weightLog.map((e) => ({ label: date(e.date, { day: 'numeric', month: 'short' }), value: fromKg(e.weightKg) }));
+  const recent = [...weightLog].reverse().slice(0, 6);
 
   return (
-    <div className="card p-6">
-      <div className="flex items-start justify-between gap-3 mb-4">
-        <div>
-          <div className="flex items-center gap-2.5">
-            <span className="icon-chip h-8 w-8 rounded-lg bg-violet-50 text-violet-600 dark:bg-violet-500/10 dark:text-violet-400">
-              <Scale className="h-4 w-4" />
-            </span>
-            <h3 className="text-lg font-semibold tracking-tight text-gray-900 dark:text-white">
-              Body Weight
-            </h3>
-          </div>
-          {latest ? (
-            <div className="mt-3 flex flex-wrap items-baseline gap-2">
-              <span className="whitespace-nowrap text-3xl font-semibold tracking-tight text-gray-900 dark:text-white">
-                {latest.weightKg} kg
-              </span>
-              {delta !== null && delta !== 0 && (
-                <span
-                  className={`whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium ${
-                    delta > 0
-                      ? 'bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300'
-                      : 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300'
-                  }`}
-                >
-                  {delta > 0 ? '+' : ''}
-                  {delta.toFixed(1)} kg vs last entry
-                </span>
-              )}
-            </div>
-          ) : (
-            <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-              Log your weight after workouts to see your trend here.
-            </p>
-          )}
+    <section className="mt-8 border-t hairline pt-4">
+      <h2 className="text-[20px] font-semibold tracking-tight text-gray-900 dark:text-white">{t('weight.title')}</h2>
+      {latest ? (
+        <div className="mt-2 flex items-baseline gap-2">
+          <p className="text-[56px] font-semibold leading-none tracking-[-.03em] text-gray-900 dark:text-white">{formatValue(latest.weightKg)}</p>
+          <p className="text-[18px] text-gray-400">{unit}</p>
+          <p className="ml-auto text-right text-[13px] leading-snug text-gray-500 dark:text-gray-400">
+            {previous && (
+              <>
+                {t('weight.sinceDate', { delta: signed(latest.weightKg - previous.weightKg), date: date(previous.date, { day: 'numeric', month: 'short' }) })}
+                <br />
+              </>
+            )}
+            {first && first !== latest && previous !== first && t('weight.sinceDate', { delta: signed(latest.weightKg - first.weightKg), date: date(first.date, { day: 'numeric', month: 'short' }) })}
+          </p>
         </div>
-        <button onClick={() => setIsLogModalOpen(true)} className="btn-secondary flex-shrink-0">
-          <Plus className="h-4 w-4" />
-          Log weight
+      ) : (
+        <p className="mt-1 text-[14px] text-gray-500 dark:text-gray-400">{t('weight.empty')}</p>
+      )}
+
+      <div className="mt-4 flex items-center gap-3 rounded-2xl border hairline p-2 pl-4">
+        <label htmlFor="quick-weight" className="text-[13px] text-gray-500 dark:text-gray-400">
+          {t('weight.today')}
+        </label>
+        <input
+          id="quick-weight"
+          type="number"
+          inputMode="decimal"
+          step="0.1"
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && log()}
+          placeholder={latest ? String(fromKg(latest.weightKg)) : '—'}
+          className="min-w-0 flex-1 bg-transparent text-right text-[18px] font-semibold text-gray-900 placeholder:font-normal placeholder:text-gray-300 focus:outline-none dark:text-white dark:placeholder:text-gray-600"
+        />
+        <span className="text-[13px] text-gray-400">{unit}</span>
+        <button onClick={log} disabled={!valid} className="pill-primary px-4 py-2 text-[14px]">
+          {t('weight.log')}
         </button>
       </div>
 
-      {data.length >= 2 ? (
-        <div className="h-[240px]">
+      {data.length >= 2 && (
+        <div className="mt-5 h-[160px]">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={data}>
-              <CartesianGrid vertical={false} stroke={theme.gridColor} />
-              <XAxis
-                dataKey="label"
-                tick={{ fill: theme.tickColor, fontSize: 12 }}
-                axisLine={false}
-                tickLine={false}
-                minTickGap={24}
-              />
+            <LineChart data={data} margin={{ top: 12, right: 8, left: 0, bottom: 0 }}>
+              <CartesianGrid vertical={false} stroke={colors.grid} />
+              <XAxis dataKey="label" tick={{ fill: colors.tick, fontSize: 10 }} axisLine={false} tickLine={false} minTickGap={28} />
               <YAxis
                 domain={['dataMin - 1', 'dataMax + 1']}
-                tick={{ fill: theme.tickColor, fontSize: 12 }}
-                tickFormatter={(value) => `${value}`}
+                tick={{ fill: colors.tick, fontSize: 10 }}
+                tickFormatter={(v: number) => number(v, 0)}
                 axisLine={false}
                 tickLine={false}
                 width={40}
               />
-              <Tooltip
-                formatter={(value: number) => [`${value} kg`, 'Weight']}
-                labelFormatter={(_, payload) => payload?.[0]?.payload?.fullDate ?? ''}
-                contentStyle={theme.tooltipStyle}
-              />
-              <Line
-                type="monotone"
-                dataKey="weightKg"
-                stroke={weightColor}
-                strokeWidth={2}
-                dot={{ fill: weightColor, strokeWidth: 0, r: 4 }}
-                activeDot={{ r: 5, strokeWidth: 2, stroke: theme.darkMode ? '#111827' : '#ffffff' }}
-              />
+              <Tooltip contentStyle={colors.tooltip} formatter={(v: number) => [`${number(v, 1)} ${unit}`, t('weight.title')]} />
+              <Line type="monotone" dataKey="value" stroke={colors.line} strokeWidth={2} dot={false} activeDot={{ r: 5, stroke: colors.surface, strokeWidth: 2 }} />
             </LineChart>
           </ResponsiveContainer>
         </div>
-      ) : (
-        data.length === 1 && (
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            One entry logged — add another to see the trend line.
-          </p>
-        )
       )}
 
-      <LogWeightModal isOpen={isLogModalOpen} onClose={() => setIsLogModalOpen(false)} />
-    </div>
+      {recent.length > 0 && (
+        <div className="mt-4">
+          <div className="grid grid-cols-[1fr_auto_72px_32px] cap">
+            <span>{t('common.date')}</span>
+            <span>{t('weight.change')}</span>
+            <span className="text-right">{unit}</span>
+            <span />
+          </div>
+          {recent.map((entry, i) => {
+            const before = recent[i + 1];
+            return (
+              <div key={entry.id} className="grid grid-cols-[1fr_auto_72px_32px] items-center border-b border-gray-100 py-2 text-[14px] dark:border-white/[0.06]">
+                <span className="text-gray-900 dark:text-white">{date(entry.date, { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                <span className="tabular-nums text-gray-500 dark:text-gray-400">{before ? signed(entry.weightKg - before.weightKg) : ''}</span>
+                <span className="text-right font-semibold tabular-nums text-gray-900 dark:text-white">{formatValue(entry.weightKg)}</span>
+                <button
+                  onClick={() => deleteWeightEntry(entry.id)}
+                  aria-label={t('weight.deleteEntry')}
+                  className="ml-auto inline-flex h-7 w-7 items-center justify-center rounded-lg text-gray-300 hover:bg-red-50 hover:text-red-500 dark:text-gray-600 dark:hover:bg-red-500/10"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+      <button onClick={() => setSheetOpen(true)} className="mt-3 text-[14px] font-medium text-indigo-600 dark:text-indigo-400">
+        {t('weight.logOtherDay')}
+      </button>
+      <LogWeightSheet open={sheetOpen} onClose={() => setSheetOpen(false)} />
+    </section>
   );
 }

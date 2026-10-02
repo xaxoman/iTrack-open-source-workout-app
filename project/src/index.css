@@ -63,6 +63,40 @@
     @apply w-full rounded-2xl border border-gray-200/70 bg-white shadow-2xl shadow-gray-950/20 dark:border-white/10 dark:bg-gray-900 animate-slide-up;
   }
 
+  /* ---- Design C ("Paper") primitives ---- */
+
+  /* Small caps section label */
+  .cap {
+    @apply text-[11px] font-semibold uppercase tracking-[.12em] text-gray-400 dark:text-gray-500;
+  }
+
+  /* Pill buttons */
+  .pill {
+    @apply inline-flex items-center justify-center gap-2 rounded-full px-5 py-3 text-[15px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 dark:focus-visible:ring-offset-gray-950;
+  }
+  .pill-primary {
+    @apply pill bg-indigo-600 text-white hover:bg-indigo-500 active:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-400;
+  }
+  .pill-secondary {
+    @apply pill border border-gray-200 bg-white text-gray-800 hover:bg-gray-50 dark:border-white/10 dark:bg-transparent dark:text-gray-100 dark:hover:bg-white/[0.06];
+  }
+  .pill-dark {
+    @apply pill bg-gray-900 text-white hover:bg-gray-800 dark:bg-white dark:text-gray-950 dark:hover:bg-gray-200;
+  }
+  .pill-danger {
+    @apply pill bg-red-600 text-white hover:bg-red-500;
+  }
+
+  /* Grouped list (settings-style) */
+  .group-list {
+    @apply divide-y divide-gray-200/70 overflow-hidden rounded-2xl bg-gray-50 dark:divide-white/[0.06] dark:bg-gray-900;
+  }
+
+  /* Hairline divider colour */
+  .hairline {
+    @apply border-gray-200 dark:border-white/10;
+  }
+
   /* Small icon badge used in card headers */
   .icon-chip {
     @apply inline-flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400;

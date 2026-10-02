@@ -12,9 +12,24 @@ import { backupManager } from './utils/backupManager';
 import { notificationManager } from './utils/notificationManager';
 import { useWorkoutStore } from './store/useWorkoutStore';
 import { useAuthStore } from './store/useAuthStore';
+import { useI18n } from './i18n';
+import { unlockAudio } from './utils/sound';
 
 function App() {
   const { notificationSettings, darkMode } = useWorkoutStore();
+  const { lang } = useI18n();
+
+  useEffect(() => {
+    document.documentElement.lang = lang;
+  }, [lang]);
+
+  // Audio starts suspended until a user gesture; unlock it on the first tap so
+  // the rest-timer beep can play later on its own.
+  useEffect(() => {
+    const unlock = () => unlockAudio();
+    window.addEventListener('pointerdown', unlock, { once: true });
+    return () => window.removeEventListener('pointerdown', unlock);
+  }, []);
 
   useEffect(() => {
     if (darkMode) {
@@ -43,17 +58,27 @@ function App() {
     };
   }, []);
 
-  // Re-schedule notifications when settings change
+  // Re-schedule notifications when settings (or their language) change
   useEffect(() => {
     notificationManager.schedule(notificationSettings);
-  }, [notificationSettings]);
+  }, [notificationSettings, lang]);
 
   return (
     <BrowserRouter future={{ 
       v7_startTransition: true,
       v7_relativeSplatPath: true 
     }}>
-      <Toaster />
+      <Toaster
+        position="top-center"
+        toastOptions={{
+          style: {
+            borderRadius: '999px',
+            background: darkMode ? '#f9fafb' : '#111827',
+            color: darkMode ? '#111827' : '#f9fafb',
+            fontSize: '14px',
+          },
+        }}
+      />
       <Routes>
         <Route path="/" element={<Layout />}>
           <Route index element={<Home />} />

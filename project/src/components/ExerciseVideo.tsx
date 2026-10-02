@@ -1,64 +1,49 @@
-import React from 'react';
-
 interface ExerciseVideoProps {
   url: string;
+  /** Accessible title for the embed. */
+  title: string;
 }
 
-export function ExerciseVideo({ url }: ExerciseVideoProps) {
-  // Extract video ID from YouTube URL
-  const getYouTubeVideoId = (url: string) => {
-    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
-    const match = url.match(regExp);
-    return match && match[2].length === 11 ? match[2] : null;
-  };
+/** Extract the 11-char video id from any common YouTube URL shape. */
+function getYouTubeVideoId(url: string) {
+  const match = url.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|shorts\/|watch\?v=|&v=)([^#&?]*).*/);
+  return match && match[2].length === 11 ? match[2] : null;
+}
 
-  const isImageOrGif = (url: string) => {
-    return /\.(gif|jpe?g|tiff?|png|webp|bmp)(\?.*)?$/i.test(url);
-  };
+const isImageOrGif = (url: string) => /\.(gif|jpe?g|tiff?|png|webp|bmp)(\?.*)?$/i.test(url);
+
+/** Full-width 16:9 demo: a looping, muted YouTube embed or an image/GIF. */
+export function ExerciseVideo({ url, title }: ExerciseVideoProps) {
+  if (!url) return null;
+
+  const frame = 'aspect-video w-full overflow-hidden rounded-xl bg-gray-900';
+
+  if (isImageOrGif(url)) {
+    return (
+      <div className={`${frame} flex items-center justify-center`}>
+        <img src={url} alt={title} className="h-full w-full object-contain" />
+      </div>
+    );
+  }
 
   const videoId = getYouTubeVideoId(url);
-  const youtubeEmbedParams = videoId
-    ? new URLSearchParams({
+  const src = videoId
+    ? `https://www.youtube.com/embed/${videoId}?${new URLSearchParams({
         origin: window.location.origin,
         autoplay: '1',
         mute: '1',
         loop: '1',
         playlist: videoId,
-      }).toString()
-    : null;
+        playsinline: '1',
+      }).toString()}`
+    : url;
 
-  if (!url) return null;
-
-  if (isImageOrGif(url)) {
-    return (
-      <div className="aspect-video rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-800 flex justify-center items-center">
-        <img src={url} alt="Exercise demonstration" className="w-full h-full object-contain" />
-      </div>
-    );
-  }
-
-  if (videoId) {
-    return (
-      <div className="aspect-video rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-800">
-        <iframe
-          className="w-full h-full"
-          src={`https://www.youtube.com/embed/${videoId}?${youtubeEmbedParams}`}
-          title="Exercise demonstration"
-          frameBorder="0"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          allowFullScreen
-        />
-      </div>
-    );
-  }
-
-  // For non-YouTube URLs, still show an iframe
   return (
-    <div className="aspect-video rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-800">
+    <div className={frame}>
       <iframe
-        className="w-full h-full"
-        src={url}
-        title="Exercise demonstration"
+        className="h-full w-full"
+        src={src}
+        title={title}
         frameBorder="0"
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
         allowFullScreen

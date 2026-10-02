@@ -1,28 +1,28 @@
 import { useState } from 'react';
-import {
-  Bell,
-  Moon,
-  User,
-  Download,
-  Upload,
-  HardDrive,
-  Cloud,
-  RefreshCw,
-  Database,
-  ChevronDown,
-  Sparkles,
-  Dumbbell,
-} from 'lucide-react';
+import { Capacitor } from '@capacitor/core';
+import { ChevronRight, Languages, Play, RefreshCw, Smartphone } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { useWorkoutStore } from '../store/useWorkoutStore';
 import { useAuthStore } from '../store/useAuthStore';
-import { NotificationSettingsModal } from '../components/NotificationSettingsModal';
+import { NotificationSettingsModal, DAY_IDS } from '../components/NotificationSettingsModal';
 import { UserProfileModal } from '../components/UserProfileModal';
 import { AuthModal } from '../components/AuthModal';
 import { AICoachOnboardingModal } from '../components/AICoachOnboardingModal';
+import { Group, OptionRow, PageTitle, Row, Segmented, Sheet, Switch } from '../components/ui';
 import { isSupabaseConfigured } from '../lib/supabase';
-import type { NotificationSettings, UserProfile } from '../store/useWorkoutStore';
+import { getSyncableData } from '../lib/cloudSync';
+import { useI18n, resolveLang, systemLang, type LanguagePref } from '../i18n';
+import { useUnits } from '../utils/units';
+import { previewSound, type RestSound } from '../utils/sound';
+
+const LANGUAGES: { value: LanguagePref; flag: string; native: string }[] = [
+  { value: 'en', flag: '🇬🇧', native: 'English' },
+  { value: 'it', flag: '🇮🇹', native: 'Italiano' },
+];
 
 export function Settings() {
+  const { t, tp, weekdays, number, date } = useI18n();
+  const { format } = useUnits();
   const {
     darkMode,
     toggleDarkMode,
@@ -30,76 +30,65 @@ export function Settings() {
     updateNotificationSettings,
     userProfile,
     updateUserProfile,
-    weightLog,
-    workouts,
-    templates,
-    routineBookmarks,
     importData,
     aiCoach,
-    setAICoachConfig,
     aiOnboarded,
+    equipment,
+    language,
+    setLanguage,
+    weightUnit,
+    setWeightUnit,
+    restSound,
+    setRestSound,
+    restVibrate,
+    setRestVibrate,
+    autoBackup,
+    setAutoBackup,
   } = useWorkoutStore();
+  const { user, storageMode, syncing, lastSyncedAt, setStorageMode, syncNow } = useAuthStore();
 
-  const {
-    user,
-    storageMode,
-    syncing,
-    lastSyncedAt,
-    setStorageMode,
-    syncNow,
-  } = useAuthStore();
+  const [sheet, setSheet] = useState<null | 'language' | 'sound' | 'storage' | 'coach' | 'profile' | 'reminders' | 'auth' | 'equipment'>(null);
+  const close = () => setSheet(null);
 
-  const [isNotificationModalOpen, setIsNotificationModalOpen] = useState(false);
-  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
-  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-  const [isDataMenuOpen, setIsDataMenuOpen] = useState(false);
-  const [isCoachOnboardingOpen, setIsCoachOnboardingOpen] = useState(false);
-  const [apiKeyInput, setApiKeyInput] = useState(aiCoach.apiKey);
-  const [modelInput, setModelInput] = useState(aiCoach.model);
-  const [reasoningInput, setReasoningInput] = useState<'low' | 'high'>(aiCoach.thinkingLevel);
+  const languageLabel = (pref: LanguagePref) =>
+    pref === 'system' ? t('settings.systemDefault') : LANGUAGES.find((l) => l.value === pref)?.native ?? pref;
 
-  const handleSelectStorage = (mode: 'local' | 'supabase') => {
-    if (mode === 'supabase') {
-      if (!isSupabaseConfigured) {
-        setIsAuthModalOpen(true);
-        return;
-      }
-      if (!user) {
-        // Need an account first — prompt sign in/up, then reconcile on success.
-        setIsAuthModalOpen(true);
-        return;
-      }
+  const profileSummary = userProfile
+    ? [`${number(userProfile.height, 0)} cm`, format(userProfile.weight), userProfile.bmi ? `${t('profile.bmi')} ${number(userProfile.bmi, 1, 1)}` : '']
+        .filter(Boolean)
+        .join(' · ')
+    : t('settings.notSet');
+
+  const shortDays = weekdays('short');
+  const remindersSummary = notificationSettings.enabled
+    ? `${DAY_IDS.filter((d) => notificationSettings.days.includes(d))
+        .map((d) => shortDays[DAY_IDS.indexOf(d)].replace('.', ''))
+        .join(', ')} · ${notificationSettings.time}`
+    : t('settings.off');
+
+  const soundLabel = (s: RestSound) => t(`sound.${s}`);
+
+  const storageSummary =
+    storageMode === 'supabase'
+      ? user
+        ? syncing
+          ? t('auth.syncing')
+          : lastSyncedAt
+            ? t('settings.syncedAt', { time: date(lastSyncedAt, { hour: '2-digit', minute: '2-digit' }) })
+            : t('settings.cloud')
+        : t('settings.cloudSignIn')
+      : t('settings.thisDevice');
+
+  const chooseStorage = (mode: 'local' | 'supabase') => {
+    if (mode === 'supabase' && (!isSupabaseConfigured || !user)) {
+      setSheet('auth');
+      return;
     }
     setStorageMode(mode);
   };
 
-  const getStorageStatusText = () => {
-    if (storageMode !== 'supabase') return 'Stored locally on this device';
-    if (!user) return 'Cloud selected — sign in to sync';
-    if (syncing) return 'Syncing…';
-    if (lastSyncedAt) return `Synced ${new Date(lastSyncedAt).toLocaleTimeString()}`;
-    return `Cloud (${user.email})`;
-  };
-
-  const handleSaveNotificationSettings = (settings: NotificationSettings) => {
-    updateNotificationSettings(settings);
-  };
-
-  const handleSaveProfile = (profile: UserProfile) => {
-    updateUserProfile(profile);
-  };
-
-  const handleExport = () => {
-    const data = {
-      workouts,
-      templates,
-      userProfile,
-      weightLog,
-      routineBookmarks,
-      notificationSettings,
-      darkMode
-    };
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const exportData = () => {
+    const blob = new Blob([JSON.stringify(getSyncableData(), null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -110,426 +99,243 @@ export function Settings() {
     URL.revokeObjectURL(url);
   };
 
-  const handleImport = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const importFile = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
-
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
-        const content = e.target?.result as string;
-        const data = JSON.parse(content);
-        importData(data);
-        alert('Data imported successfully!');
+        importData(JSON.parse(e.target?.result as string));
+        toast.success(t('settings.importDone'));
       } catch (error) {
         console.error('Import failed:', error);
-        alert('Failed to import data. Invalid file format.');
+        toast.error(t('settings.importFailed'));
       }
     };
     reader.readAsText(file);
-    // Reset input
     event.target.value = '';
   };
 
-  const getNotificationStatusText = () => {
-    if (!notificationSettings.enabled) return 'Disabled';
-    const days = notificationSettings.days.length;
-    return `${days} day${days !== 1 ? 's' : ''} at ${notificationSettings.time}`;
-  };
-
-  const getProfileStatusText = () => {
-    if (!userProfile) return 'Not configured';
-
-    const summaryParts = [
-      `${userProfile.gender}, ${userProfile.age}y`,
-      `BMI: ${userProfile.bmi?.toFixed(1) || 'N/A'} (${userProfile.bmiCategory || 'Unknown'})`,
-    ];
-
-    if (typeof userProfile.bodyFatPercentage === 'number') {
-      summaryParts.push(`Body fat: ${userProfile.bodyFatPercentage.toFixed(1)}%`);
-    }
-
-    return summaryParts.join(' | ');
-  };
-
   return (
-    <div className="space-y-8">
-      <h1 className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-white">Settings</h1>
+    <div>
+      <PageTitle title={t('nav.settings')} />
 
-      {/* Data Storage */}
-      <div className="card">
-        <div className="p-6">
-          <div className="flex items-center space-x-3 mb-1">
-            {storageMode === 'supabase' ? (
-              <Cloud className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
-            ) : (
-              <HardDrive className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+      <Group label={t('settings.profile')}>
+        <Row label={t('settings.body')} value={profileSummary} onClick={() => setSheet('profile')} />
+      </Group>
+
+      <Group label={t('settings.general')}>
+        <Row label={t('settings.language')} value={languageLabel(language)} onClick={() => setSheet('language')} />
+        <Row
+          label={t('settings.units')}
+          right={
+            <Segmented
+              label={t('settings.units')}
+              value={weightUnit}
+              onChange={setWeightUnit}
+              options={[
+                { value: 'kg', label: 'kg' },
+                { value: 'lb', label: 'lb' },
+              ]}
+            />
+          }
+        />
+        <Row label={t('settings.darkMode')} right={<Switch checked={darkMode} onChange={toggleDarkMode} label={t('settings.darkMode')} />} />
+      </Group>
+
+      <Group label={t('settings.workout')} footnote={t('settings.soundFootnote')}>
+        <Row label={t('settings.reminders')} value={remindersSummary} onClick={() => setSheet('reminders')} />
+        <Row label={t('settings.restSound')} value={soundLabel(restSound)} onClick={() => setSheet('sound')} />
+        <Row label={t('settings.vibrate')} right={<Switch checked={restVibrate} onChange={setRestVibrate} label={t('settings.vibrate')} />} />
+      </Group>
+
+      <Group label={t('settings.data')}>
+        <Row label={t('settings.storage')} value={storageSummary} onClick={() => setSheet('storage')} />
+        {Capacitor.isNativePlatform() && (
+          <Row
+            label={t('settings.autoBackup')}
+            description={t('settings.autoBackupHint')}
+            right={<Switch checked={autoBackup} onChange={setAutoBackup} label={t('settings.autoBackup')} />}
+          />
+        )}
+        <Row label={t('settings.export')} value="JSON" onClick={exportData} />
+        <Row
+          label={t('settings.import')}
+          htmlFor="import-file"
+          value={t('settings.chooseFile')}
+          right={<ChevronRight className="h-4 w-4 flex-shrink-0 text-gray-300 dark:text-gray-600" />}
+        />
+        <input id="import-file" type="file" accept=".json,application/json" onChange={importFile} className="hidden" />
+      </Group>
+
+      <Group label={t('settings.coach')} footnote={t('settings.coachFootnote')}>
+        <Row label={t('settings.geminiKey')} value={aiCoach.apiKey ? t('settings.keySaved') : t('settings.notSet')} onClick={() => setSheet('coach')} />
+        <Row label={t('settings.model')} value={`${aiCoach.model} · ${t(`settings.reasoning${aiCoach.thinkingLevel === 'high' ? 'High' : 'Low'}`)}`} onClick={() => setSheet('coach')} />
+        <Row
+          label={t('settings.equipment')}
+          value={aiOnboarded ? tp('settings.equipmentItems', equipment.length) : t('settings.notSet')}
+          onClick={() => setSheet('equipment')}
+        />
+      </Group>
+
+      <p className="mt-8 text-center text-[12px] text-gray-400 dark:text-gray-500">{t('settings.footer')}</p>
+
+      {/* Language */}
+      <Sheet open={sheet === 'language'} onClose={close} title={t('settings.language')} subtitle={t('settings.languageHint')}>
+        <div className="mt-3 divide-y divide-gray-100 border-y border-gray-100 dark:divide-white/[0.06] dark:border-white/[0.06]">
+          <OptionRow
+            selected={language === 'system'}
+            onSelect={() => setLanguage('system')}
+            leading={<Smartphone className="h-5 w-5 text-gray-400" strokeWidth={1.75} />}
+            label={t('settings.systemDefault')}
+            description={t('settings.currently', { lang: languageLabel(systemLang()) })}
+          />
+          {LANGUAGES.map((l) => (
+            <OptionRow
+              key={l.value}
+              selected={language === l.value}
+              onSelect={() => setLanguage(l.value)}
+              leading={<span className="text-[22px] leading-none">{l.flag}</span>}
+              label={l.native}
+              description={resolveLang(language) !== l.value ? t(`settings.lang.${l.value as 'en' | 'it'}`) : undefined}
+            />
+          ))}
+        </div>
+        <p className="mx-6 mt-3 flex items-center gap-1.5 text-[13px] text-gray-500 dark:text-gray-400">
+          <Languages className="h-4 w-4 text-indigo-600 dark:text-indigo-400" strokeWidth={1.75} />
+          {t('settings.helpTranslate')}{' '}
+          <a href="https://github.com/xaxoman/iTrack-open-source-workout-app" target="_blank" rel="noreferrer" className="font-medium text-indigo-600 dark:text-indigo-400">
+            GitHub
+          </a>
+        </p>
+      </Sheet>
+
+      {/* Rest sound */}
+      <Sheet open={sheet === 'sound'} onClose={close} title={t('settings.restSound')} subtitle={t('settings.soundFootnote')}>
+        <div className="mt-3 divide-y divide-gray-100 border-y border-gray-100 dark:divide-white/[0.06] dark:border-white/[0.06]">
+          {(['beep', 'chime', 'off'] as RestSound[]).map((s) => (
+            <OptionRow
+              key={s}
+              selected={restSound === s}
+              onSelect={() => {
+                setRestSound(s);
+                previewSound(s);
+              }}
+              label={soundLabel(s)}
+              trailing={
+                s !== 'off' ? (
+                  <button
+                    onClick={() => previewSound(s)}
+                    aria-label={t('settings.preview', { sound: soundLabel(s) })}
+                    className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-50 text-indigo-600 dark:bg-indigo-500/15 dark:text-indigo-300"
+                  >
+                    <Play className="h-3.5 w-3.5 translate-x-[1px] fill-current" />
+                  </button>
+                ) : undefined
+              }
+            />
+          ))}
+        </div>
+      </Sheet>
+
+      {/* Storage */}
+      <Sheet open={sheet === 'storage'} onClose={close} title={t('settings.storage')} subtitle={t('settings.storageHint')}>
+        <div className="mt-3 divide-y divide-gray-100 border-y border-gray-100 dark:divide-white/[0.06] dark:border-white/[0.06]">
+          <OptionRow selected={storageMode === 'local'} onSelect={() => chooseStorage('local')} label={t('settings.thisDevice')} description={t('settings.thisDeviceHint')} />
+          <OptionRow selected={storageMode === 'supabase'} onSelect={() => chooseStorage('supabase')} label={t('settings.cloud')} description={t('settings.cloudHint')} />
+        </div>
+        {storageMode === 'supabase' && (
+          <div className="mt-4 flex flex-wrap gap-2 px-6">
+            {user && (
+              <button onClick={() => syncNow().catch(() => {})} disabled={syncing} className="pill-secondary py-2 text-[14px]">
+                <RefreshCw className={`h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />
+                {syncing ? t('auth.syncing') : t('auth.syncNow')}
+              </button>
             )}
-            <div>
-              <h3 className="text-base font-semibold tracking-tight text-gray-900 dark:text-white">
-                Data Storage
-              </h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                {getStorageStatusText()}
-              </p>
-            </div>
-          </div>
-
-          <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <StorageOption
-              active={storageMode === 'local'}
-              icon={<HardDrive className="h-5 w-5" />}
-              title="This device"
-              description="Save data locally as JSON. Works offline, stays private."
-              onClick={() => handleSelectStorage('local')}
-            />
-            <StorageOption
-              active={storageMode === 'supabase'}
-              icon={<Cloud className="h-5 w-5" />}
-              title="Cloud (Supabase)"
-              description="Back up and sync across devices with your account."
-              onClick={() => handleSelectStorage('supabase')}
-            />
-          </div>
-
-          {storageMode === 'supabase' && (
-            <div className="mt-4 flex flex-wrap items-center gap-3">
-              {user ? (
-                <button
-                  onClick={() => syncNow()}
-                  disabled={syncing}
-                  className="link flex items-center space-x-2 disabled:opacity-60"
-                >
-                  <RefreshCw className={`h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />
-                  <span>{syncing ? 'Syncing…' : 'Sync now'}</span>
-                </button>
-              ) : (
-                <button
-                  onClick={() => setIsAuthModalOpen(true)}
-                  className="link"
-                >
-                  Sign in to sync
-                </button>
-              )}
-              <button
-                onClick={() => setIsAuthModalOpen(true)}
-                className="text-sm font-medium text-gray-600 transition-colors hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
-              >
-                Manage account
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* AI Coach */}
-      <div className="card p-6 space-y-4">
-        <div className="flex items-center space-x-3">
-          <Sparkles className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
-          <div>
-            <h3 className="text-base font-semibold tracking-tight text-gray-900 dark:text-white">AI Coach</h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              Gemini API key & model (stored only on this device)
-            </p>
-          </div>
-        </div>
-
-        <div>
-          <label className="label">
-            Gemini API key
-          </label>
-          <input
-            type="password"
-            value={apiKeyInput}
-            onChange={(e) => setApiKeyInput(e.target.value)}
-            placeholder="AIza..."
-            autoComplete="off"
-            className="input"
-          />
-          <p className="mt-1 text-xs text-gray-400">
-            Get a free key at{' '}
-            <a
-              href="https://aistudio.google.com/apikey"
-              target="_blank"
-              rel="noreferrer"
-              className="underline text-indigo-600 dark:text-indigo-400"
-            >
-              aistudio.google.com/apikey
-            </a>
-          </p>
-        </div>
-
-        <div>
-          <label className="label">
-            Model
-          </label>
-          <input
-            type="text"
-            value={modelInput}
-            onChange={(e) => setModelInput(e.target.value)}
-            placeholder="gemini-3.5-flash"
-            className="input"
-          />
-        </div>
-
-        <div>
-          <label className="label">
-            Reasoning
-          </label>
-          <select
-            value={reasoningInput}
-            onChange={(e) => setReasoningInput(e.target.value as 'low' | 'high')}
-            className="input"
-          >
-            <option value="high">High — deeper analysis (slower)</option>
-            <option value="low">Low — faster, cheaper</option>
-          </select>
-          <p className="mt-1 text-xs text-gray-400">
-            Applies to Gemini 3 models (thinking level).
-          </p>
-        </div>
-
-        <div className="flex items-center justify-between">
-          <button
-            onClick={() => setIsCoachOnboardingOpen(true)}
-            className="flex items-center gap-1.5 text-sm font-medium text-gray-600 transition-colors hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
-          >
-            <Dumbbell className="h-4 w-4" />
-            {aiOnboarded ? 'Edit equipment & weights' : 'Set up equipment & weights'}
-          </button>
-          <button
-            onClick={() => {
-              setAICoachConfig({
-                apiKey: apiKeyInput.trim(),
-                model: modelInput.trim() || 'gemini-3.5-flash',
-                thinkingLevel: reasoningInput,
-              });
-            }}
-            className="btn-primary"
-          >
-            Save
-          </button>
-        </div>
-      </div>
-
-      <div className="card divide-y divide-gray-100 dark:divide-white/[0.06]">
-        <div className="p-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <Moon className="h-5 w-5 text-gray-600 dark:text-gray-400" />
-              <div>
-                <h3 className="text-base font-semibold tracking-tight text-gray-900 dark:text-white">
-                  Dark Mode
-                </h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  Toggle dark mode on or off
-                </p>
-              </div>
-            </div>
-            <button
-              onClick={toggleDarkMode}
-              className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-950 ${
-                darkMode ? 'bg-indigo-600' : 'bg-gray-200'
-              }`}
-            >
-              <span
-                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                  darkMode ? 'translate-x-5' : 'translate-x-0'
-                }`}
-              />
+            <button onClick={() => setSheet('auth')} className="pill-secondary py-2 text-[14px]">
+              {user ? t('settings.manageAccount') : t('settings.signInToSync')}
             </button>
           </div>
-        </div>
+        )}
+      </Sheet>
 
-        <div className="p-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <Bell className="h-5 w-5 text-gray-600 dark:text-gray-400" />
-              <div>
-                <h3 className="text-base font-semibold tracking-tight text-gray-900 dark:text-white">
-                  Notifications
-                </h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  {getNotificationStatusText()}
-                </p>
-              </div>
-            </div>
-            <button 
-              onClick={() => setIsNotificationModalOpen(true)}
-              className="link"
-            >
-              Configure
-            </button>
-          </div>
-        </div>
+      <CoachSheet open={sheet === 'coach'} onClose={close} />
 
-        <div className="p-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <User className="h-5 w-5 text-gray-600 dark:text-gray-400" />
-              <div>
-                <h3 className="text-base font-semibold tracking-tight text-gray-900 dark:text-white">
-                  Profile
-                </h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  {getProfileStatusText()}
-                </p>
-              </div>
-            </div>
-            <button 
-              onClick={() => setIsProfileModalOpen(true)}
-              className="link"
-            >
-              {userProfile ? 'Edit' : 'Setup'}
-            </button>
-          </div>
-        </div>
-
-        <div className="p-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <Database className="h-5 w-5 text-gray-600 dark:text-gray-400" />
-              <div>
-                <h3 className="text-base font-semibold tracking-tight text-gray-900 dark:text-white">
-                  Backup &amp; Data
-                </h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  Export or import your data
-                </p>
-              </div>
-            </div>
-            <div className="relative">
-              <button
-                onClick={() => setIsDataMenuOpen((open) => !open)}
-                aria-haspopup="true"
-                aria-expanded={isDataMenuOpen}
-                className="link flex items-center space-x-1"
-              >
-                <span>Manage</span>
-                <ChevronDown
-                  className={`h-4 w-4 transition-transform ${
-                    isDataMenuOpen ? 'rotate-180' : ''
-                  }`}
-                />
-              </button>
-
-              {isDataMenuOpen && (
-                <>
-                  {/* Invisible backdrop to close the menu on outside click */}
-                  <div
-                    className="fixed inset-0 z-10"
-                    onClick={() => setIsDataMenuOpen(false)}
-                  />
-                  <div className="absolute right-0 bottom-full mb-2 w-56 rounded-xl border border-gray-200/70 bg-white shadow-xl shadow-gray-950/10 dark:border-white/10 dark:bg-gray-900 z-20 overflow-hidden">
-                    <button
-                      onClick={() => {
-                        handleExport();
-                        setIsDataMenuOpen(false);
-                      }}
-                      className="flex w-full items-center space-x-3 px-4 py-3 text-left transition-colors hover:bg-gray-50 dark:hover:bg-gray-800"
-                    >
-                      <Download className="h-4 w-4 text-gray-500 dark:text-gray-400 flex-shrink-0" />
-                      <div>
-                        <p className="text-sm font-medium text-gray-900 dark:text-white">
-                          Export Data
-                        </p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">
-                          Download a backup of your data
-                        </p>
-                      </div>
-                    </button>
-
-                    <label className="flex w-full cursor-pointer items-center space-x-3 px-4 py-3 text-left transition-colors hover:bg-gray-50 dark:hover:bg-gray-800 border-t border-gray-100 dark:border-white/[0.06]">
-                      <Upload className="h-4 w-4 text-gray-500 dark:text-gray-400 flex-shrink-0" />
-                      <div>
-                        <p className="text-sm font-medium text-gray-900 dark:text-white">
-                          Import Data
-                        </p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">
-                          Restore data from a backup file
-                        </p>
-                      </div>
-                      <input
-                        type="file"
-                        accept=".json"
-                        onChange={(e) => {
-                          handleImport(e);
-                          setIsDataMenuOpen(false);
-                        }}
-                        className="hidden"
-                      />
-                    </label>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Modals */}
-      <NotificationSettingsModal
-        isOpen={isNotificationModalOpen}
-        onClose={() => setIsNotificationModalOpen(false)}
-        onSave={handleSaveNotificationSettings}
-        currentSettings={notificationSettings}
-      />
-
-      <UserProfileModal
-        isOpen={isProfileModalOpen}
-        onClose={() => setIsProfileModalOpen(false)}
-        onSave={handleSaveProfile}
-        currentProfile={userProfile || undefined}
-      />
-
-      <AuthModal
-        isOpen={isAuthModalOpen}
-        onClose={() => setIsAuthModalOpen(false)}
-      />
-
-      <AICoachOnboardingModal
-        isOpen={isCoachOnboardingOpen}
-        onClose={() => setIsCoachOnboardingOpen(false)}
-      />
+      <NotificationSettingsModal isOpen={sheet === 'reminders'} onClose={close} onSave={updateNotificationSettings} currentSettings={notificationSettings} />
+      <UserProfileModal isOpen={sheet === 'profile'} onClose={close} onSave={updateUserProfile} currentProfile={userProfile ?? undefined} />
+      <AuthModal isOpen={sheet === 'auth'} onClose={close} />
+      <AICoachOnboardingModal isOpen={sheet === 'equipment'} onClose={close} />
     </div>
   );
 }
 
-function StorageOption({
-  active,
-  icon,
-  title,
-  description,
-  onClick,
-}: {
-  active: boolean;
-  icon: React.ReactNode;
-  title: string;
-  description: string;
-  onClick: () => void;
-}) {
+/** Gemini key, model and reasoning level (stored only on this device). */
+function CoachSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const { t } = useI18n();
+  const { aiCoach, setAICoachConfig } = useWorkoutStore();
+  const [key, setKey] = useState(aiCoach.apiKey);
+  const [model, setModel] = useState(aiCoach.model);
+  const [level, setLevel] = useState<'low' | 'high'>(aiCoach.thinkingLevel);
+
+  const [lastOpen, setLastOpen] = useState(false);
+  if (open !== lastOpen) {
+    setLastOpen(open);
+    if (open) {
+      setKey(aiCoach.apiKey);
+      setModel(aiCoach.model);
+      setLevel(aiCoach.thinkingLevel);
+    }
+  }
+
+  const save = () => {
+    setAICoachConfig({ apiKey: key.trim(), model: model.trim() || 'gemini-3.5-flash', thinkingLevel: level });
+    toast.success(t('settings.coachSaved'));
+    onClose();
+  };
+
   return (
-    <button
-      onClick={onClick}
-      className={`text-left rounded-xl border p-4 transition-colors ${
-        active
-          ? 'border-indigo-500 bg-indigo-50/70 ring-1 ring-indigo-500 dark:border-indigo-400/60 dark:bg-indigo-500/10 dark:ring-indigo-400/60'
-          : 'border-gray-200 hover:border-gray-300 dark:border-white/[0.08] dark:hover:border-white/[0.16]'
-      }`}
-    >
-      <div className="flex items-center space-x-2">
-        <span
-          className={
-            active
-              ? 'text-indigo-600 dark:text-indigo-400'
-              : 'text-gray-500 dark:text-gray-400'
-          }
-        >
-          {icon}
-        </span>
-        <span className="font-medium text-gray-900 dark:text-white">{title}</span>
+    <Sheet open={open} onClose={onClose} title={t('settings.coach')} subtitle={t('settings.coachFootnote')}>
+      <div className="mt-5 space-y-4 px-6">
+        <div>
+          <label htmlFor="gemini-key" className="label">
+            {t('settings.geminiKey')}
+          </label>
+          <input id="gemini-key" type="password" value={key} onChange={(e) => setKey(e.target.value)} placeholder="AIza…" autoComplete="off" className="input text-[16px]" />
+          <p className="mt-1.5 text-[12px] text-gray-400">
+            {t('settings.getKey')}{' '}
+            <a href="https://aistudio.google.com/apikey" target="_blank" rel="noreferrer" className="text-indigo-600 underline dark:text-indigo-400">
+              aistudio.google.com/apikey
+            </a>
+          </p>
+        </div>
+        <div>
+          <label htmlFor="gemini-model" className="label">
+            {t('settings.model')}
+          </label>
+          <input id="gemini-model" value={model} onChange={(e) => setModel(e.target.value)} placeholder="gemini-3.5-flash" className="input text-[16px]" />
+        </div>
+        <div className="flex items-center justify-between">
+          <span className="text-[15px] text-gray-900 dark:text-white">{t('settings.reasoning')}</span>
+          <Segmented
+            label={t('settings.reasoning')}
+            value={level}
+            onChange={setLevel}
+            options={[
+              { value: 'high', label: t('settings.reasoningHigh') },
+              { value: 'low', label: t('settings.reasoningLow') },
+            ]}
+          />
+        </div>
+        <p className="text-[12px] text-gray-400">{t('settings.reasoningHint')}</p>
       </div>
-      <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{description}</p>
-    </button>
+      <div className="mt-6 grid grid-cols-2 gap-2 px-6">
+        <button onClick={onClose} className="pill-secondary">
+          {t('common.cancel')}
+        </button>
+        <button onClick={save} className="pill-primary">
+          {t('common.save')}
+        </button>
+      </div>
+    </Sheet>
   );
 }
