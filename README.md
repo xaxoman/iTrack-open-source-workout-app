@@ -163,3 +163,5 @@ Contributions are welcome:
 ## License
 
 Licensed under the Apache License 2.0 — see [`LICENSE`](./LICENSE) for details.
+
+The body outlines in the "Muscles worked" map come from [MuscleMap](https://github.com/melihcolpan/MuscleMap) by Melih Colpan, used under the MIT License (notice in [`project/src/components/bodyPaths.ts`](./project/src/components/bodyPaths.ts)).
